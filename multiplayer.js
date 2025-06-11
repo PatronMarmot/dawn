@@ -20,12 +20,10 @@ class MultiplayerManager {
         try {
             addLog('🌐 Multiplayer sunucusuna bağlanılıyor...', 'info');
             
-            // Güncellenmiş sunucu listesi
+            // Güncellenmiş sunucu listesi (HTTPS uyumlu)
             const servers = [
-                'ws://localhost:8080',              // Local development
-                'wss://dawn-fi92.onrender.com',     // Render direct URL (şimdilik)
-                'ws://dawn-fi92.onrender.com'       // Fallback
-                // 'wss://api.dawnlighten.com.tr',   // Custom domain (DNS bekliyor)
+                'wss://dawn-fi92.onrender.com',     // Render WSS (güvenli)
+                'ws://localhost:8080'               // Local development (sadece localhost'ta)
             ];
             
             for (const serverUrl of servers) {
