@@ -20,12 +20,12 @@ class MultiplayerManager {
         try {
             addLog('🌐 Multiplayer sunucusuna bağlanılıyor...', 'info');
             
-            // Güncellenmiş sunucu listesi (Vercel)
+            // Vercel optimize sunucu listesi
             const servers = [
-                'ws://localhost:8080',                     // Local development
                 'wss://dawn-epic-card.vercel.app/api/websocket', // Vercel production
-                'wss://epic-card-battle.vercel.app/api/websocket', // Alternative Vercel
-                'wss://dawn-fi92.onrender.com'             // Render backup
+                'wss://epic-card-battle.vercel.app/api/websocket', // Alternative
+                'ws://localhost:8080',                     // Local development
+                'wss://dawn-fi92.onrender.com'             // Render backup (broken)
             ];
             
             for (const serverUrl of servers) {

@@ -1,254 +1,249 @@
-// Vercel WebSocket API Handler
-import { WebSocketServer } from 'ws';
+// Vercel Serverless WebSocket Handler - Updated
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
-// In-memory game state (Vercel Serverless uyumlu)
-const games = new Map();
-const players = new Map();
-
-// WebSocket connection handler
-export default function handler(req, res) {
   if (req.method === 'GET') {
-    // WebSocket upgrade request
-    if (req.headers.upgrade === 'websocket') {
-      handleWebSocket(req, res);
-    } else {
-      // Regular HTTP request
-      res.status(200).json({
-        status: 'WebSocket endpoint',
-        message: 'Use WebSocket protocol to connect',
-        wsUrl: 'wss://dawn-epic-card.vercel.app/api/websocket'
+    // WebSocket bilgisi döndür
+    res.status(200).json({
+      status: 'WebSocket Ready',
+      service: 'Epic Card Battle Multiplayer',
+      websocket: 'wss://' + req.headers.host + '/api/websocket',
+      instructions: {
+        client: 'Use WebSocket connection to this endpoint',
+        example: 'new WebSocket("wss://' + req.headers.host + '/api/websocket")'
+      },
+      timestamp: new Date().toISOString(),
+      vercel: true,
+      ready: true
+    });
+    return;
+  }
+
+  // WebSocket upgrade handling
+  if (req.headers.upgrade === 'websocket') {
+    try {
+      // Vercel Edge Runtime WebSocket
+      const webSocketPair = new WebSocketPair();
+      const [client, server] = Object.values(webSocketPair);
+
+      // WebSocket event handlers
+      server.accept();
+      
+      // Game state (in-memory for this connection)
+      let gameState = {
+        games: new Map(),
+        players: new Map(),
+        playerId: null,
+        gameId: null
+      };
+
+      server.addEventListener('message', (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          handleWebSocketMessage(server, message, gameState);
+        } catch (error) {
+          sendMessage(server, {
+            type: 'error',
+            message: 'Invalid JSON: ' + error.message
+          });
+        }
+      });
+
+      server.addEventListener('close', () => {
+        console.log('🔌 WebSocket connection closed');
+        if (gameState.playerId) {
+          handlePlayerDisconnect(server, gameState);
+        }
+      });
+
+      server.addEventListener('error', (error) => {
+        console.error('🚫 WebSocket error:', error);
+      });
+
+      // Return WebSocket response
+      return new Response(null, {
+        status: 101,
+        webSocket: client,
+      });
+
+    } catch (error) {
+      console.error('WebSocket upgrade error:', error);
+      res.status(500).json({
+        error: 'WebSocket upgrade failed',
+        message: error.message
       });
     }
   } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    res.status(426).json({
+      error: 'Upgrade Required',
+      message: 'This endpoint requires WebSocket connection',
+      upgrade: 'websocket'
+    });
   }
 }
 
-function handleWebSocket(req, res) {
-  // Vercel WebSocket implementation
-  const wss = new WebSocketServer({ 
-    noServer: true,
-    perMessageDeflate: false
-  });
-
-  wss.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws) => {
-    console.log('🌐 Yeni WebSocket bağlantısı');
-    
-    // Player tracking
-    let playerData = null;
-    
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        handleMessage(ws, message);
-      } catch (error) {
-        console.error('❌ Mesaj parse hatası:', error);
-        sendError(ws, 'Invalid message format');
-      }
-    });
-
-    ws.on('close', () => {
-      if (playerData) {
-        handleDisconnect(ws, playerData);
-      }
-    });
-
-    ws.on('error', (error) => {
-      console.error('🚫 WebSocket hatası:', error);
-    });
-
-    // Store connection
-    playerData = { ws, id: null, gameId: null };
-  });
-}
-
-function handleMessage(ws, message) {
-  console.log('📨 Gelen mesaj:', message.type);
+function handleWebSocketMessage(ws, message, gameState) {
+  console.log('📨 Message received:', message.type);
 
   switch (message.type) {
     case 'player_connected':
-      handlePlayerConnected(ws, message);
+      handlePlayerConnected(ws, message, gameState);
       break;
     case 'create_game':
-      handleCreateGame(ws, message);
+      handleCreateGame(ws, message, gameState);
       break;
     case 'join_game':
-      handleJoinGame(ws, message);
+      handleJoinGame(ws, message, gameState);
       break;
     case 'start_game':
-      handleStartGame(ws, message);
+      handleStartGame(ws, message, gameState);
+      break;
+    case 'ping':
+      sendMessage(ws, { type: 'pong', timestamp: Date.now() });
       break;
     default:
-      sendError(ws, 'Unknown message type: ' + message.type);
+      sendMessage(ws, {
+        type: 'error',
+        message: 'Unknown message type: ' + message.type
+      });
   }
 }
 
-function handlePlayerConnected(ws, message) {
-  const player = {
-    id: message.playerId,
-    name: message.playerName,
-    ws: ws,
-    gameId: null,
-    isHost: false
-  };
-
-  players.set(ws, player);
-  console.log('👤 Oyuncu bağlandı:', player.name);
+function handlePlayerConnected(ws, message, gameState) {
+  gameState.playerId = message.playerId;
+  gameState.playerName = message.playerName || 'Player';
   
-  send(ws, {
+  sendMessage(ws, {
     type: 'connected',
-    playerId: player.id,
-    message: 'Connected to Vercel WebSocket'
+    playerId: gameState.playerId,
+    message: 'Connected to Vercel WebSocket',
+    timestamp: Date.now()
   });
+  
+  console.log('👤 Player connected:', gameState.playerName);
 }
 
-function handleCreateGame(ws, message) {
-  const player = players.get(ws);
-  if (!player) {
-    sendError(ws, 'Player not found');
+function handleCreateGame(ws, message, gameState) {
+  if (!gameState.playerId) {
+    sendMessage(ws, { type: 'error', message: 'Player not connected' });
     return;
   }
 
-  const gameId = message.gameId;
+  const gameId = message.gameId || generateGameId();
   
-  if (games.has(gameId)) {
-    sendError(ws, 'Game already exists');
-    return;
-  }
-
   const game = {
     id: gameId,
-    host: player.id,
-    players: [player],
+    host: gameState.playerId,
+    players: [gameState.playerId],
     status: 'waiting',
     createdAt: Date.now()
   };
 
-  games.set(gameId, game);
-  player.gameId = gameId;
-  player.isHost = true;
+  gameState.games.set(gameId, game);
+  gameState.gameId = gameId;
 
-  send(ws, {
+  sendMessage(ws, {
     type: 'game_created',
     gameId: gameId,
-    hostId: player.id
+    hostId: gameState.playerId,
+    message: 'Game created successfully'
   });
 
-  console.log('🏠 Oyun oluşturuldu:', gameId);
+  console.log('🏠 Game created:', gameId);
 }
 
-function handleJoinGame(ws, message) {
-  const player = players.get(ws);
-  if (!player) {
-    sendError(ws, 'Player not found');
+function handleJoinGame(ws, message, gameState) {
+  if (!gameState.playerId) {
+    sendMessage(ws, { type: 'error', message: 'Player not connected' });
     return;
   }
 
   const gameId = message.gameId;
-  const game = games.get(gameId);
+  const game = gameState.games.get(gameId);
 
   if (!game) {
-    sendError(ws, 'Game not found');
+    sendMessage(ws, { type: 'error', message: 'Game not found: ' + gameId });
     return;
   }
 
   if (game.players.length >= 2) {
-    sendError(ws, 'Game is full');
+    sendMessage(ws, { type: 'error', message: 'Game is full' });
     return;
   }
 
-  game.players.push(player);
-  player.gameId = gameId;
+  game.players.push(gameState.playerId);
+  gameState.gameId = gameId;
 
-  const opponent = game.players.find(p => p.id !== player.id);
-  
-  send(ws, {
+  sendMessage(ws, {
     type: 'player_joined',
     gameId: gameId,
-    opponent: {
-      id: opponent.id,
-      name: opponent.name
-    }
+    players: game.players.length,
+    message: 'Successfully joined game'
   });
 
-  send(opponent.ws, {
-    type: 'player_joined',
-    gameId: gameId,
-    opponent: {
-      id: player.id,
-      name: player.name
-    }
-  });
-
-  console.log('🚪 Oyuncu katıldı:', player.name);
+  console.log('🚪 Player joined game:', gameId);
 }
 
-function handleStartGame(ws, message) {
-  const player = players.get(ws);
-  const game = games.get(message.gameId);
-
-  if (!game || !player || !player.isHost) {
-    sendError(ws, 'Cannot start game');
+function handleStartGame(ws, message, gameState) {
+  const game = gameState.games.get(message.gameId);
+  
+  if (!game || game.host !== gameState.playerId) {
+    sendMessage(ws, { type: 'error', message: 'Cannot start game' });
     return;
   }
 
-  if (game.players.length !== 2) {
-    sendError(ws, 'Need 2 players to start');
+  if (game.players.length < 2) {
+    sendMessage(ws, { type: 'error', message: 'Need 2 players to start' });
     return;
   }
 
   game.status = 'playing';
-  game.currentPlayer = game.host;
-
-  game.players.forEach(p => {
-    send(p.ws, {
-      type: 'game_started',
-      gameId: game.id,
-      firstPlayer: game.currentPlayer
-    });
+  
+  sendMessage(ws, {
+    type: 'game_started',
+    gameId: game.id,
+    players: game.players,
+    firstPlayer: game.host
   });
 
-  console.log('🎮 Oyun başladı:', game.id);
+  console.log('🎮 Game started:', game.id);
 }
 
-function handleDisconnect(ws, playerData) {
-  const player = players.get(ws);
-  if (!player) return;
-
-  console.log('👋 Oyuncu ayrıldı:', player.name);
-
-  if (player.gameId) {
-    const game = games.get(player.gameId);
+function handlePlayerDisconnect(ws, gameState) {
+  if (gameState.gameId) {
+    const game = gameState.games.get(gameState.gameId);
     if (game) {
-      game.players.forEach(p => {
-        if (p.ws !== ws) {
-          send(p.ws, {
-            type: 'player_disconnected',
-            gameId: game.id,
-            playerId: player.id
-          });
-        }
-      });
-      games.delete(game.id);
+      gameState.games.delete(gameState.gameId);
+      console.log('🏠 Game deleted due to disconnect:', gameState.gameId);
     }
   }
-
-  players.delete(ws);
+  
+  console.log('👋 Player disconnected:', gameState.playerId);
 }
 
-function send(ws, message) {
-  if (ws.readyState === 1) { // WebSocket.OPEN
-    try {
+function sendMessage(ws, message) {
+  try {
+    if (ws.readyState === 1) { // OPEN
       ws.send(JSON.stringify(message));
-    } catch (error) {
-      console.error('Send error:', error);
     }
+  } catch (error) {
+    console.error('Send message error:', error);
   }
 }
 
-function sendError(ws, message) {
-  send(ws, {
-    type: 'error',
-    message: message
-  });
+function generateGameId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
