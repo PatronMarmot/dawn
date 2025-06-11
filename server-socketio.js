@@ -1,4 +1,4 @@
-// Epic Card Battle - Socket.io Server (Fixed)
+// Epic Card Battle - Socket.io Server (CORS Fixed)
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -12,21 +12,25 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = createServer(app);
 
-// CORS configuration
+// AGGRESSIVE CORS configuration
 app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST"],
-    credentials: true
+    origin: ["http://localhost:8080", "http://127.0.0.1:8080", "http://localhost:3000", "*"],
+    methods: ["GET", "POST", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["*"]
 }));
 
 const io = new Server(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"],
-        credentials: true
+        origin: ["http://localhost:8080", "http://127.0.0.1:8080", "http://localhost:3000", "*"],
+        methods: ["GET", "POST", "OPTIONS"],
+        credentials: true,
+        allowedHeaders: ["*"]
     },
     transports: ['websocket', 'polling'],
-    allowEIO3: true
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 const PORT = process.env.PORT || 8080;
@@ -36,6 +40,7 @@ app.use(express.static(__dirname));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.json({
         status: 'OK',
         service: 'Epic Card Battle Socket.io',
@@ -43,8 +48,17 @@ app.get('/health', (req, res) => {
         connected_players: connectedPlayers.size,
         active_games: games.size,
         socketio: true,
-        port: PORT
+        port: PORT,
+        cors_enabled: true
     });
+});
+
+// CORS preflight
+app.options('*', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.sendStatus(200);
 });
 
 // Game state
@@ -407,13 +421,12 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`📡 Server running on port ${PORT}`);
     console.log(`🌐 URL: http://localhost:${PORT}`);
     console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
+    console.log(`🔧 CORS enabled for all origins`);
     console.log('🎮 Ready for multiplayer battles!');
     console.log('');
-    console.log('📋 To test:');
-    console.log('1. Open http://localhost:8080 in two browser tabs');
-    console.log('2. Click "ÇOK OYUNCULU" in both tabs');
-    console.log('3. One player creates game, other joins with ID');
-    console.log('4. Epic Card Battle multiplayer starts! ⚔️');
+    console.log('📋 To test connection:');
+    console.log('Browser console: const testSocket = io("http://localhost:8080");');
+    console.log('testSocket.on("connect", () => console.log("CONNECTED!"));');
 });
 
 // Graceful shutdown

@@ -1,5 +1,5 @@
-// Epic Card Battle - Fixed Multiplayer System (Connection Fixed)
-// Socket.io + Local Server Support
+// Epic Card Battle - Fixed Multiplayer System (Polling Only)
+// Socket.io Polling Transport (WebSocket problemlerini çözer)
 
 class MultiplayerManager {
     constructor() {
@@ -16,12 +16,12 @@ class MultiplayerManager {
         this.gameRooms = new Map(); // Local room management
     }
 
-    // Sunucuya bağlan - Socket.io ve Local support
+    // Sunucuya bağlan - POLLING ONLY
     async connect() {
         try {
-            addLog('🌐 Multiplayer sistemi başlatılıyor...', 'info');
+            addLog('🌐 Multiplayer sistemi başlatılıyor (Polling mode)...', 'info');
             
-            // Socket.io server URLs (FIXED ORDER)
+            // Socket.io server URLs - POLLING ONLY
             const servers = [
                 'http://localhost:8080',                     // Local Socket.io server (PRIMARY)
                 'https://dawn-epic-card.onrender.com',       // Render production
@@ -31,15 +31,15 @@ class MultiplayerManager {
             
             for (const serverUrl of servers) {
                 try {
-                    addLog(`🔍 Deneniyor: ${serverUrl}`, 'info');
+                    addLog(`🔍 Deneniyor (polling): ${serverUrl}`, 'info');
                     
                     if (serverUrl === 'LOCAL_MODE') {
                         await this.enableLocalMode();
                         addLog('✅ Local multiplayer aktif!', 'win');
                         break;
                     } else {
-                        await this.trySocketIO(serverUrl);
-                        addLog(`✅ Socket.io bağlandı: ${serverUrl}`, 'win');
+                        await this.trySocketIOPolling(serverUrl);
+                        addLog(`✅ Socket.io (polling) bağlandı: ${serverUrl}`, 'win');
                         break;
                     }
                 } catch (e) {
@@ -61,8 +61,8 @@ class MultiplayerManager {
         }
     }
 
-    // Socket.io bağlantısı dene
-    trySocketIO(serverUrl) {
+    // Socket.io POLLING-ONLY bağlantısı
+    trySocketIOPolling(serverUrl) {
         return new Promise((resolve, reject) => {
             // Socket.io client kontrolü
             if (typeof io === 'undefined') {
@@ -70,27 +70,32 @@ class MultiplayerManager {
                 return;
             }
 
-            console.log('🔌 Socket.io ile bağlanılıyor:', serverUrl);
+            console.log('🔌 Socket.io POLLING ile bağlanılıyor:', serverUrl);
             
             const timeout = setTimeout(() => {
                 if (this.socket) {
                     this.socket.disconnect();
                 }
-                reject(new Error('Bağlantı timeout (8 saniye)'));
-            }, 8000);
+                reject(new Error('Bağlantı timeout (10 saniye)'));
+            }, 10000);
 
-            // Socket.io bağlantısı
+            // Socket.io bağlantısı - SADECE POLLING
             this.socket = io(serverUrl, {
-                transports: ['websocket', 'polling'],
-                timeout: 5000,
+                transports: ['polling'],  // SADECE POLLING!
+                timeout: 8000,
                 forceNew: true,
-                reconnection: false,
-                autoConnect: true
+                reconnection: true,
+                reconnectionAttempts: 3,
+                reconnectionDelay: 2000,
+                autoConnect: true,
+                upgrade: false,  // WebSocket upgrade'i devre dışı
+                rememberUpgrade: false
             });
 
             this.socket.on('connect', () => {
                 clearTimeout(timeout);
-                console.log('✅ Socket.io connected to:', serverUrl);
+                console.log('✅ Socket.io POLLING connected to:', serverUrl);
+                console.log('🔧 Transport:', this.socket.io.engine.transport.name);
                 this.connected = true;
                 this.setupSocketIOEvents();
                 
@@ -103,25 +108,40 @@ class MultiplayerManager {
                 });
                 
                 this.updateMultiplayerUI(true);
-                console.log('🎮 Socket.io multiplayer ready!');
+                console.log('🎮 Socket.io POLLING multiplayer ready!');
                 resolve();
             });
 
             this.socket.on('connect_error', (error) => {
                 clearTimeout(timeout);
-                console.error('❌ Socket.io connection error:', error);
+                console.error('❌ Socket.io POLLING connection error:', error);
                 this.connected = false;
                 if (this.socket) {
                     this.socket.disconnect();
                 }
-                reject(new Error('Socket.io connection failed: ' + error.message));
+                reject(new Error('Socket.io POLLING connection failed: ' + error.message));
             });
 
             this.socket.on('disconnect', (reason) => {
-                console.log('🔌 Socket.io disconnected:', reason);
+                console.log('🔌 Socket.io POLLING disconnected:', reason);
                 this.connected = false;
                 this.updateMultiplayerUI(false);
                 addLog('❌ Server bağlantısı kesildi', 'error');
+                
+                // Auto-reconnect
+                if (reason !== 'io client disconnect') {
+                    addLog('🔄 Yeniden bağlanılıyor...', 'info');
+                    setTimeout(() => this.connect(), 3000);
+                }
+            });
+
+            // Transport upgrade olayını dinle
+            this.socket.io.on('upgrade', (transport) => {
+                console.log('⬆️ Transport upgraded to:', transport.name);
+            });
+
+            this.socket.io.on('upgradeError', (error) => {
+                console.log('⚠️ Transport upgrade error (normal for polling-only):', error);
             });
         });
     }
@@ -150,7 +170,7 @@ class MultiplayerManager {
 
         this.socket.on('player_registered', (data) => {
             console.log('👤 Player registered:', data);
-            addLog('🎮 Socket.io server bağlantısı başarılı!', 'win');
+            addLog('🎮 Socket.io POLLING bağlantısı başarılı!', 'win');
         });
 
         this.socket.on('game_created', (data) => this.onGameCreated(data));
@@ -165,7 +185,7 @@ class MultiplayerManager {
 
         // Connection health check
         this.socket.on('pong', (data) => {
-            console.log('💓 Server heartbeat OK');
+            console.log('💓 Server heartbeat OK (polling)');
         });
 
         // Send periodic ping
@@ -212,7 +232,7 @@ class MultiplayerManager {
         
         if (this.socket && this.socket.connected) {
             // Socket.io mode
-            console.log('🏠 Socket.io ile oyun oluşturuluyor:', this.gameId);
+            console.log('🏠 Socket.io POLLING ile oyun oluşturuluyor:', this.gameId);
             this.socket.emit('create_game', {
                 gameId: this.gameId,
                 playerName: this.playerName
@@ -254,7 +274,7 @@ class MultiplayerManager {
         
         if (this.socket && this.socket.connected) {
             // Socket.io mode
-            console.log('🚪 Socket.io ile oyuna katılınıyor:', this.gameId);
+            console.log('🚪 Socket.io POLLING ile oyuna katılınıyor:', this.gameId);
             this.socket.emit('join_game', {
                 gameId: this.gameId,
                 playerName: this.playerName
@@ -446,7 +466,7 @@ class MultiplayerManager {
                     <div class="waiting-spinner">
                         <div class="spinner"></div>
                         <p>İkinci oyuncunun katılması bekleniyor...</p>
-                        <p><small>${this.socket?.connected ? 'Socket.io Server' : 'Local Mode'} - ID\'yi paylaşın!</small></p>
+                        <p><small>${this.socket?.connected ? 'Socket.io POLLING' : 'Local Mode'} - ID\'yi paylaşın!</small></p>
                     </div>
                 </div>
                 <button onclick="multiplayer.cancelGame()" class="menu-btn secondary-btn">❌ İptal Et</button>
@@ -464,7 +484,7 @@ class MultiplayerManager {
         const statusElements = document.querySelectorAll('[id*="status"], [class*="status"]');
         statusElements.forEach(el => {
             if (el.textContent.includes('Sunucu') || el.textContent.includes('Bağlantı')) {
-                const mode = this.socket?.connected ? 'Socket.io Server' : 'Local Mode';
+                const mode = this.socket?.connected ? 'Socket.io POLLING' : 'Local Mode';
                 el.textContent = connected ? `🟢 ${mode} aktif!` : '🔴 Multiplayer hazırlanıyor...';
                 el.style.color = connected ? '#10b981' : '#ef4444';
             }
@@ -657,4 +677,4 @@ if (!document.querySelector('#multiplayer-css')) {
 // Export
 window.multiplayer = multiplayer;
 
-console.log('🚀 Epic Card Battle Multiplayer System - Connection Fixed!');
+console.log('🚀 Epic Card Battle Multiplayer System - POLLING ONLY MODE!');
