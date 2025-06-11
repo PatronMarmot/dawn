@@ -8,7 +8,7 @@ class EpicCardBattleServer {
     constructor() {
         this.games = new Map(); // gameId -> game data
         this.players = new Map(); // ws -> player data
-        this.port = process.env.PORT || 10000;
+        this.port = process.env.PORT || 8080;
         
         this.server = http.createServer();
         this.wss = new WebSocket.Server({ 
@@ -419,6 +419,22 @@ class EpicCardBattleServer {
     }
 
     start() {
+        // Health check endpoint
+        this.server.on('request', (req, res) => {
+            if (req.url === '/health' || req.url === '/') {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    status: 'OK',
+                    message: 'Epic Card Battle Server is running',
+                    timestamp: new Date().toISOString(),
+                    stats: this.getStats()
+                }));
+            } else {
+                res.writeHead(404);
+                res.end('Not Found');
+            }
+        });
+
         this.server.listen(this.port, () => {
             console.log(`🎮 Epic Card Battle Server çalışıyor: ws://localhost:${this.port}`);
             console.log('🌐 CORS destekleniyor');

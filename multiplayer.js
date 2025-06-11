@@ -23,9 +23,9 @@ class MultiplayerManager {
             // Güncellenmiş sunucu listesi
             const servers = [
                 'ws://localhost:8080',              // Local development
-                'wss://api.dawnlighten.com.tr',     // Custom domain (öncelik)
-                'wss://dawn-fi92.onrender.com',     // Render direct URL
+                'wss://dawn-fi92.onrender.com',     // Render direct URL (şimdilik)
                 'ws://dawn-fi92.onrender.com'       // Fallback
+                // 'wss://api.dawnlighten.com.tr',   // Custom domain (DNS bekliyor)
             ];
             
             for (const serverUrl of servers) {
