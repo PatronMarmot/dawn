@@ -22,9 +22,10 @@ class MultiplayerManager {
             
             // Güncellenmiş sunucu listesi (Vercel)
             const servers = [
-                'ws://localhost:8080',                           // Local development
+                'ws://localhost:8080',                     // Local development
                 'wss://dawn-epic-card.vercel.app/api/websocket', // Vercel production
-                'wss://dawn-fi92.onrender.com'                   // Render backup
+                'wss://epic-card-battle.vercel.app/api/websocket', // Alternative Vercel
+                'wss://dawn-fi92.onrender.com'             // Render backup
             ];
             
             for (const serverUrl of servers) {

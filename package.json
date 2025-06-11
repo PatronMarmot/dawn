@@ -1,26 +1,30 @@
 {
-  "name": "epic-card-battle-server",
-  "version": "2.0.0",
-  "description": "Epic Card Battle Multiplayer Server",
-  "main": "server.js",
+  "name": "epic-card-battle-multiplayer",
+  "version": "1.0.0",
+  "description": "Epic Card Battle - Online Multiplayer Game",
+  "main": "index.html",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "echo 'No build needed'",
+    "dev": "node server.js"
   },
   "dependencies": {
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "socket.io": "^4.7.5",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [
-    "card-game",
+    "game",
     "multiplayer",
+    "cards",
     "websocket",
-    "nodejs",
-    "game-server"
+    "realtime"
   ],
   "author": "Epic Card Battle Team",
-  "license": "MIT",
-  "engines": {
-    "node": ">=14.0.0"
-  }
+  "license": "MIT"
 }

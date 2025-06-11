@@ -1,18 +1,41 @@
 {
   "version": 2,
   "functions": {
-    "api/websocket.js": {
+    "api/*.js": {
       "runtime": "nodejs18.x"
     }
   },
   "rewrites": [
     {
-      "source": "/health",
-      "destination": "/api/health"
+      "source": "/",
+      "destination": "/index.html"
     },
     {
-      "source": "/websocket",
-      "destination": "/api/websocket"
+      "source": "/api/health",
+      "destination": "/api/health.js"
+    },
+    {
+      "source": "/api/websocket",
+      "destination": "/api/websocket.js"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
     }
   ]
 }
