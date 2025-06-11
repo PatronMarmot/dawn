@@ -1,4 +1,4 @@
-// Oyun durumu
+// Oyun durumu - MULTIPLAYER SUPPORT ADDED
 let gameState = {
     gold: 100,
     health: 100,
@@ -15,7 +15,12 @@ let gameState = {
     spellTimer: 0,
     targetingMode: false,
     selectedSpell: null,
-    gameStarted: false
+    gameStarted: false,
+    // 🚀 MULTIPLAYER SUPPORT
+    isMultiplayer: false,
+    multiplayerManager: null,
+    opponentName: null,
+    isMyTurn: false
 };
 
 // Ayarlar
