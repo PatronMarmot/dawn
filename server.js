@@ -1,9 +1,8 @@
-// Epic Card Battle - Demo WebSocket Sunucusu
-// Node.js ile çalışır, gerçek multiplayer için
+// Epic Card Battle - WebSocket Multiplayer Server
+// Temiz ve çalışır versiyon
 
 const WebSocket = require('ws');
 const http = require('http');
-const url = require('url');
 
 class EpicCardBattleServer {
     constructor() {
@@ -25,7 +24,7 @@ class EpicCardBattleServer {
 
     setupWebSocket() {
         this.wss.on('connection', (ws, req) => {
-            console.log('🌐 Yeni bağlantı:', req.connection.remoteAddress);
+            console.log('🌐 Yeni bağlantı:', req.socket.remoteAddress);
             
             ws.on('message', (data) => {
                 try {
@@ -420,12 +419,10 @@ class EpicCardBattleServer {
     }
 
     start() {
-        this.httpServer.listen(this.port, this.host, () => {
-            console.log(`🎮 Epic Card Battle Server çalışıyor: ${this.host}:${this.port}`);
+        this.server.listen(this.port, () => {
+            console.log(`🎮 Epic Card Battle Server çalışıyor: ws://localhost:${this.port}`);
             console.log('🌐 CORS destekleniyor');
             console.log('⚡ WebSocket bağlantıları kabul ediliyor...');
-            console.log('📊 Health check: /health');
-            console.log('🔍 Status check: /status');
         });
     }
 
@@ -435,304 +432,6 @@ class EpicCardBattleServer {
             activeGames: this.games.size,
             uptime: process.uptime(),
             memory: process.memoryUsage()
-        };
-    }
-}
-
-// Hosting türüne göre farklı başlatma
-if (require.main === module) {
-    const server = new HostingCompatibleServer();
-    server.start();
-
-    // Graceful shutdown
-    process.on('SIGINT', () => {
-        console.log('👋 Sunucu kapatılıyor...');
-        process.exit(0);
-    });
-
-    process.on('SIGTERM', () => {
-        console.log('👋 Hosting tarafından sonlandırılıyor...');
-        process.exit(0);
-    });
-
-    // İstatistik logları (hosting için)
-    setInterval(() => {
-        const stats = server.getStats();
-        if (stats.connectedPlayers > 0 || stats.activeGames > 0) {
-            console.log(`📊 [${new Date().toISOString()}] Aktif: ${stats.connectedPlayers} oyuncu, ${stats.activeGames} oyun`);
-        }
-    }, 60000);
-
-    // Hosting keep-alive
-    if (process.env.NODE_ENV === 'production') {
-        setInterval(() => {
-            console.log('💓 Server heartbeat -', new Date().toISOString());
-        }, 300000); // 5 dakika
-    }
-}
-
-module.exports = HostingCompatibleServer;
-            this.sendError(ws, 'Game already started');
-            return;
-        }
-
-        // Oyuncuyu oyuna ekle
-        game.players.push(player);
-        player.gameId = gameId;
-
-        // Her iki oyuncuya bilgi ver
-        const opponent = game.players.find(p => p.id !== player.id);
-        
-        this.send(ws, {
-            type: 'player_joined',
-            gameId: gameId,
-            opponent: {
-                id: opponent.id,
-                name: opponent.name
-            }
-        });
-
-        this.send(opponent.ws, {
-            type: 'player_joined',
-            gameId: gameId,
-            opponent: {
-                id: player.id,
-                name: player.name
-            }
-        });
-
-        console.log('🚪 Oyuncı katıldı:', player.name, 'to', gameId);
-    }
-
-    handleStartGame(ws, message) {
-        const player = this.players.get(ws);
-        const game = this.games.get(message.gameId);
-
-        if (!game || !player || player.gameId !== game.id) {
-            this.sendError(ws, 'Invalid game or player');
-            return;
-        }
-
-        if (!player.isHost) {
-            this.sendError(ws, 'Only host can start game');
-            return;
-        }
-
-        if (game.players.length !== 2) {
-            this.sendError(ws, 'Need 2 players to start');
-            return;
-        }
-
-        // Oyunu başlat
-        game.status = 'playing';
-        game.currentPlayer = game.host; // Host başlar
-        game.turnStartTime = Date.now();
-
-        // Her iki oyuncuya oyun başlama mesajı
-        game.players.forEach(p => {
-            this.send(p.ws, {
-                type: 'game_started',
-                gameId: game.id,
-                firstPlayer: game.currentPlayer,
-                players: game.players.map(player => ({
-                    id: player.id,
-                    name: player.name,
-                    isHost: player.isHost
-                }))
-            });
-        });
-
-        console.log('🎮 Oyun başladı:', game.id);
-    }
-
-    handleCardPlayed(ws, message) {
-        const player = this.players.get(ws);
-        const game = this.games.get(message.gameId);
-
-        if (!this.validateGameAction(ws, player, game)) return;
-
-        // Rakibe kart oynanış bilgisi gönder
-        const opponent = game.players.find(p => p.id !== player.id);
-        if (opponent) {
-            this.send(opponent.ws, {
-                type: 'card_played',
-                gameId: game.id,
-                playerId: player.id,
-                cardData: message.cardData,
-                position: message.position,
-                timestamp: message.timestamp
-            });
-        }
-
-        console.log('🎯 Kart oynandı:', player.name, message.cardData.name);
-    }
-
-    handleSpellCast(ws, message) {
-        const player = this.players.get(ws);
-        const game = this.games.get(message.gameId);
-
-        if (!this.validateGameAction(ws, player, game)) return;
-
-        // Rakibe büyü kullanım bilgisi gönder
-        const opponent = game.players.find(p => p.id !== player.id);
-        if (opponent) {
-            this.send(opponent.ws, {
-                type: 'spell_cast',
-                gameId: game.id,
-                playerId: player.id,
-                spellData: message.spellData,
-                targetId: message.targetId,
-                timestamp: message.timestamp
-            });
-        }
-
-        console.log('🔮 Büyü kullanıldı:', player.name, message.spellData.name);
-    }
-
-    handleBattleStart(ws, message) {
-        const player = this.players.get(ws);
-        const game = this.games.get(message.gameId);
-
-        if (!this.validateGameAction(ws, player, game)) return;
-
-        // Rakibe savaş başlama bilgisi gönder
-        const opponent = game.players.find(p => p.id !== player.id);
-        if (opponent) {
-            this.send(opponent.ws, {
-                type: 'battle_start',
-                gameId: game.id,
-                playerId: player.id,
-                playerCards: message.playerCards,
-                spellCards: message.spellCards,
-                timestamp: message.timestamp
-            });
-        }
-
-        console.log('⚔️ Savaş başlatıldı:', player.name);
-    }
-
-    handleEndTurn(ws, message) {
-        const player = this.players.get(ws);
-        const game = this.games.get(message.gameId);
-
-        if (!this.validateGameAction(ws, player, game)) return;
-
-        if (game.currentPlayer !== player.id) {
-            this.sendError(ws, 'Not your turn');
-            return;
-        }
-
-        // Turu değiştir
-        const opponent = game.players.find(p => p.id !== player.id);
-        game.currentPlayer = opponent.id;
-        game.turnStartTime = Date.now();
-
-        // Her iki oyuncuya tur değişimi bilgisi
-        game.players.forEach(p => {
-            this.send(p.ws, {
-                type: 'turn_changed',
-                gameId: game.id,
-                currentPlayer: game.currentPlayer,
-                previousPlayer: player.id
-            });
-        });
-
-        console.log('🔄 Tur değişti:', player.name, '->', opponent.name);
-    }
-
-    handleCancelGame(ws, message) {
-        const player = this.players.get(ws);
-        const game = this.games.get(message.gameId);
-
-        if (game) {
-            // Diğer oyuncuları bilgilendir
-            game.players.forEach(p => {
-                if (p.ws !== ws) {
-                    this.send(p.ws, {
-                        type: 'game_ended',
-                        gameId: game.id,
-                        reason: 'Game cancelled by ' + player.name,
-                        winner: null
-                    });
-                }
-            });
-
-            this.games.delete(game.id);
-            console.log('❌ Oyun iptal edildi:', game.id);
-        }
-    }
-
-    handleDisconnect(ws) {
-        const player = this.players.get(ws);
-        if (!player) return;
-
-        console.log('👋 Oyuncu ayrıldı:', player.name);
-
-        // Oyundan çıkar
-        if (player.gameId) {
-            const game = this.games.get(player.gameId);
-            if (game) {
-                // Diğer oyuncuları bilgilendir
-                game.players.forEach(p => {
-                    if (p.ws !== ws) {
-                        this.send(p.ws, {
-                            type: 'player_disconnected',
-                            gameId: game.id,
-                            playerId: player.id,
-                            playerName: player.name
-                        });
-                    }
-                });
-
-                // Oyunu sonlandır
-                this.games.delete(game.id);
-            }
-        }
-
-        this.players.delete(ws);
-    }
-
-    validateGameAction(ws, player, game) {
-        if (!player || !game || player.gameId !== game.id) {
-            this.sendError(ws, 'Invalid game or player');
-            return false;
-        }
-
-        if (game.status !== 'playing') {
-            this.sendError(ws, 'Game not in playing status');
-            return false;
-        }
-
-        return true;
-    }
-
-    send(ws, message) {
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify(message));
-        }
-    }
-
-    sendError(ws, message) {
-        this.send(ws, {
-            type: 'error',
-            message: message
-        });
-    }
-
-    start() {
-        this.server.listen(this.port, () => {
-            console.log(`🎮 Epic Card Battle Server çalışıyor: ws://localhost:${this.port}`);
-            console.log('🌐 CORS destekleniyor');
-            console.log('⚡ WebSocket bağlantıları kabul ediliyor...');
-        });
-    }
-
-    // İstatistikler
-    getStats() {
-        return {
-            connectedPlayers: this.players.size,
-            activeGames: this.games.size,
-            uptime: process.uptime()
         };
     }
 }
@@ -747,12 +446,17 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
+process.on('SIGTERM', () => {
+    console.log('👋 Hosting tarafından sonlandırılıyor...');
+    process.exit(0);
+});
+
 // İstatistik logları
 setInterval(() => {
     const stats = server.getStats();
     if (stats.connectedPlayers > 0 || stats.activeGames > 0) {
-        console.log(`📊 Aktif: ${stats.connectedPlayers} oyuncu, ${stats.activeGames} oyun`);
+        console.log(`📊 [${new Date().toISOString()}] Aktif: ${stats.connectedPlayers} oyuncu, ${stats.activeGames} oyun`);
     }
-}, 60000); // Her dakika
+}, 60000);
 
 module.exports = EpicCardBattleServer;
