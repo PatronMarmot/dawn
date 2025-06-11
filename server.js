@@ -422,11 +422,16 @@ class EpicCardBattleServer {
         // Health check endpoint
         this.server.on('request', (req, res) => {
             if (req.url === '/health' || req.url === '/') {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.writeHead(200, { 
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                });
                 res.end(JSON.stringify({
                     status: 'OK',
                     message: 'Epic Card Battle Server is running',
                     timestamp: new Date().toISOString(),
+                    port: this.port,
+                    wsUrl: `wss://dawn-fi92.onrender.com`,
                     stats: this.getStats()
                 }));
             } else {
