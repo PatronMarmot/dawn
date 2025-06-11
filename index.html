@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epic Card Battle - Ultimate Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Ana Menü Ekranı -->
+    <div id="mainMenu" class="main-menu">
+        <div class="menu-background">
+            <div class="floating-particles"></div>
+        </div>
+        <div class="menu-content">
+            <h1 class="game-title">
+                <span class="title-word">EPIC</span>
+                <span class="title-word">CARD</span>
+                <span class="title-word">BATTLE</span>
+            </h1>
+            <p class="game-subtitle">Ultimate Strategy Card Game</p>
+            
+            <div class="menu-buttons">
+                <button id="startGameBtn" class="menu-btn primary-btn">
+                    <span class="btn-icon">⚔️</span>
+                    OYUNA BAŞLA
+                </button>
+                <button id="howToPlayBtn" class="menu-btn secondary-btn">
+                    <span class="btn-icon">📚</span>
+                    NASIL OYNANIR
+                </button>
+                <button id="settingsBtn" class="menu-btn secondary-btn">
+                    <span class="btn-icon">⚙️</span>
+                    AYARLAR
+                </button>
+            </div>
+            
+            <div class="menu-footer">
+                <p>Sürükle-bırak ile epik savaşlar yaşa!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nasıl Oynanır Modal -->
+    <div id="howToPlayModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn" id="closeHowToPlay">&times;</span>
+            <h2>🎮 Nasıl Oynanır?</h2>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <div class="step-icon">1️⃣</div>
+                    <div class="step-text">
+                        <h3>Kartları Sürükle</h3>
+                        <p>Elindeki kartları arena alanına sürükleyip bırak</p>
+                    </div>
+                </div>
+                <div class="tutorial-step">
+                    <div class="step-icon">2️⃣</div>
+                    <div class="step-text">
+                        <h3>Savaş Başlat</h3>
+                        <p>3 kart seçtikten sonra "SAVAŞ!" butonuna bas</p>
+                    </div>
+                </div>
+                <div class="tutorial-step">
+                    <div class="step-icon">3️⃣</div>
+                    <div class="step-text">
+                        <h3>Stratejini Geliştir</h3>
+                        <p>Kartların can, saldırı ve savunma değerlerini takip et</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ayarlar Modal -->
+    <div id="settingsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn" id="closeSettings">&times;</span>
+            <h2>⚙️ Ayarlar</h2>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>🔊 Ses Efektleri</label>
+                    <input type="checkbox" id="soundToggle" checked>
+                </div>
+                <div class="setting-item">
+                    <label>🎬 Animasyon Hızı</label>
+                    <input type="range" id="animationSpeed" min="0.5" max="2" step="0.1" value="1">
+                </div>
+                <div class="setting-item">
+                    <label>🎨 Tema</label>
+                    <select id="themeSelect">
+                        <option value="default">Varsayılan</option>
+                        <option value="dark">Karanlık</option>
+                        <option value="neon">Neon</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Oyun Alanı -->
+    <div id="gameArea" class="game-container" style="display: none;">
+        <!-- Üst Bar -->
+        <div class="top-bar">
+            <button id="pauseBtn" class="icon-btn">⏸️</button>
+            <div class="game-logo">Epic Card Battle</div>
+            <button id="menuBtn" class="icon-btn">🏠</button>
+        </div>
+
+        <header class="header">
+            <div class="stats-container">
+                <div class="stat health-stat">
+                    <div class="stat-icon">❤️</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Can</span>
+                        <span class="stat-value" id="health">100</span>
+                    </div>
+                    <div class="stat-bar">
+                        <div class="stat-fill health-fill" id="healthBar"></div>
+                    </div>
+                </div>
+                
+                <div class="stat gold-stat">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Altın</span>
+                        <span class="stat-value" id="gold">100</span>
+                    </div>
+                </div>
+                
+                <div class="stat score-stat">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Skor</span>
+                        <span class="stat-value" id="score">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="battle-section">
+            <div class="bot-area">
+                <h3>🤖 Bot Kartları</h3>
+                <div class="bot-cards" id="botCards"></div>
+            </div>
+
+            <div class="arena" id="arena">
+                <div class="arena-section player-section">
+                <h3>👤 Senin Kartların</h3>
+                <div class="battle-cards" id="playerBattleCards"></div>
+                    <div class="spell-area">
+                    <h4>🔮 Büyü Alanı</h4>
+                    <div class="spell-cards" id="playerSpellCards"></div>
+                    <button id="useSpellBtn" class="use-spell-btn" style="display: none;">
+                        <span class="btn-icon">🔮</span>
+                        BÜYÜ KULLAN!
+                    </button>
+                </div>
+            </div>
+                <div class="vs-section">
+                    <div class="vs-container">
+                        <div class="vs">⚔️</div>
+                        <div class="battle-effects" id="battleEffects"></div>
+                    </div>
+                    <button id="battleBtn" class="battle-btn">
+                        <span class="btn-icon">⚡</span>
+                        SAVAŞ!
+                    </button>
+                </div>
+                <div class="arena-section bot-section">
+                <h3>🤖 Bot Kartları</h3>
+                <div class="battle-cards" id="botBattleCards"></div>
+                    <div class="spell-area">
+                    <h4>🔮 Bot Büyüleri</h4>
+                    <div class="spell-cards" id="botSpellCards"></div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="hand">
+            <div class="hand-header">
+                <h3>🃏 Senin Kartların</h3>
+                <button id="buyCardBtn" class="buy-card-btn">
+                    <span class="btn-icon">🛒</span>
+                    Kart Al (10💰)
+                </button>
+            </div>
+            <div class="cards-container" id="playerCards"></div>
+        </div>
+
+        <div class="battle-log" id="battleLog">
+            <h4>⚡ Savaş Kayıtları</h4>
+            <div class="log-content" id="logContent"></div>
+        </div>
+    </div>
+
+    <!-- Oyun Bitti Popup -->
+    <div class="popup" id="gameOverPopup" style="display: none;">
+        <div class="popup-content game-over-content">
+            <h2 id="gameOverTitle">Oyun Bitti!</h2>
+            <p id="gameOverMessage"></p>
+            <div class="popup-buttons">
+                <button onclick="restartGame()" class="popup-btn primary">🔄 Yeniden Oyna</button>
+                <button onclick="showMainMenu()" class="popup-btn secondary">🏠 Ana Menü</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pauseModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>⏸️ Oyun Duraklatıldı</h2>
+            <div class="pause-buttons">
+                <button id="resumeBtn" class="menu-btn primary-btn">▶️ Devam Et</button>
+                <button onclick="showMainMenu()" class="menu-btn secondary-btn">🏠 Ana Menü</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="multiplayer.js"></script>
+    <script src="network-config.js"></script>
+    
+    <script>
+        // Multiplayer butonlarını ana menüye ekle
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                addMultiplayerButtonsToMenu();
+            }, 100);
+        });
+        
+        function addMultiplayerButtonsToMenu() {
+            const menuButtons = document.querySelector('.menu-buttons');
+            if (!menuButtons) return;
+            
+            // Online Multiplayer butonu
+            const multiplayerBtn = document.createElement('button');
+            multiplayerBtn.className = 'menu-btn secondary-btn';
+            multiplayerBtn.innerHTML = '<span class="btn-icon">🌐</span>ÇOK OYUNCULU';
+            multiplayerBtn.onclick = showMultiplayerMenu;
+            
+            // Ayarlar butonundan önce ekle
+            const settingsBtn = document.getElementById('settingsBtn');
+            menuButtons.insertBefore(multiplayerBtn, settingsBtn);
+        }
+        
+        function showMultiplayerMenu() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close-btn" onclick="this.parentElement.parentElement.remove()">&times;</span>
+                    <h2>🌐 Online Multiplayer</h2>
+                    <div class="multiplayer-options">
+                        <div class="connection-status">
+                            <span id="connectionStatus">🔴 Bağlantı kontrol ediliyor...</span>
+                        </div>
+                        <br>
+                        <button class="menu-btn primary-btn" onclick="connectAndCreateGame()" id="createGameBtn">
+                            <span class="btn-icon">🏠</span>OYUN OLUŞTUR
+                        </button>
+                        <div class="join-section">
+                            <input type="text" id="gameIdInput" placeholder="Oyun ID girin... (örn: ABC123)" maxlength="10" style="
+                                width: 100%;
+                                padding: 1rem;
+                                margin: 1rem 0;
+                                border: 1px solid rgba(255,255,255,0.3);
+                                border-radius: 10px;
+                                background: rgba(255,255,255,0.1);
+                                color: white;
+                                font-size: 1rem;
+                                text-align: center;
+                                text-transform: uppercase;
+                            ">
+                            <button class="menu-btn secondary-btn" onclick="connectAndJoinGame()" id="joinGameBtn">
+                                <span class="btn-icon">🚪</span>OYUNA KATIL
+                            </button>
+                        </div>
+                        <hr style="margin: 2rem 0; border: 1px solid rgba(255,255,255,0.2);">
+                        <div class="multiplayer-info">
+                            <h4>📋 Nasıl Oynanır?</h4>
+                            <ul style="text-align: left; padding-left: 1rem;">
+                                <li>🏠 <strong>Oyun Oluştur:</strong> Arkadaşınıza ID verin</li>
+                                <li>🚪 <strong>Oyuna Katıl:</strong> Arkadaşınızın ID'sini girin</li>
+                                <li>⏰ <strong>Sıralı Tur:</strong> 30 saniye tur süresi</li>
+                                <li>🎯 <strong>Gerçek Zamanlı:</strong> Kart oyunları anında görünür</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Bağlantı durumunu kontrol et
+            checkMultiplayerConnection();
+        }
+        
+        async function checkMultiplayerConnection() {
+            const statusElement = document.getElementById('connectionStatus');
+            const createBtn = document.getElementById('createGameBtn');
+            const joinBtn = document.getElementById('joinGameBtn');
+            
+            if (multiplayer.connected) {
+                statusElement.innerHTML = '🟢 Sunucuya bağlı!';
+                statusElement.style.color = '#10b981';
+                createBtn.disabled = false;
+                joinBtn.disabled = false;
+            } else {
+                statusElement.innerHTML = '🔄 Bağlanılıyor...';
+                statusElement.style.color = '#f59e0b';
+                createBtn.disabled = true;
+                joinBtn.disabled = true;
+                
+                try {
+                    await multiplayer.connect();
+                    
+                    if (multiplayer.connected) {
+                        statusElement.innerHTML = '🟢 Bağlantı başarılı!';
+                        statusElement.style.color = '#10b981';
+                        createBtn.disabled = false;
+                        joinBtn.disabled = false;
+                    } else {
+                        throw new Error('Bağlantı kurulamadı');
+                    }
+                } catch (error) {
+                    statusElement.innerHTML = '🔴 Sunucu erişilemez';
+                    statusElement.style.color = '#ef4444';
+                    createBtn.disabled = true;
+                    joinBtn.disabled = true;
+                    
+                    // Hata bilgisi ekle
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = `
+                        margin-top: 1rem;
+                        padding: 1rem;
+                        background: rgba(239, 68, 68, 0.1);
+                        border: 1px solid #ef4444;
+                        border-radius: 10px;
+                        font-size: 0.9rem;
+                        color: #ef4444;
+                    `;
+                    errorDiv.innerHTML = '❌ <strong>Sunucu Bağlantısı:</strong><br>1. <code>node server.js</code> çalıştırın<br>2. Port 8080 açık olduğundan emin olun';
+                    
+                    const modal = document.querySelector('.modal-content');
+                    if (modal && !modal.querySelector('.error-info')) {
+                        errorDiv.className = 'error-info';
+                        modal.appendChild(errorDiv);
+                    }
+                }
+            }
+        }
+        
+        async function connectAndCreateGame() {
+            try {
+                if (!multiplayer.connected) {
+                    await multiplayer.connect();
+                }
+                
+                if (multiplayer.connected) {
+                    multiplayer.createGame();
+                    addLog('🏠 Oyun odası oluşturuluyor...', 'info');
+                } else {
+                    alert('❌ Sunucuya bağlanamıyor! Lütfen server.js çalıştırın.');
+                    return;
+                }
+                
+                document.querySelector('.modal').remove();
+                hideMainMenu();
+                initGame();
+                
+            } catch (error) {
+                alert('❌ Sunucu bağlantı hatası: ' + error.message);
+                console.error('Multiplayer bağlantı hatası:', error);
+            }
+        }
+        
+        async function connectAndJoinGame() {
+            const gameId = document.getElementById('gameIdInput').value.trim().toUpperCase();
+            
+            if (!gameId) {
+                alert('❌ Lütfen geçerli bir Oyun ID girin!');
+                return;
+            }
+            
+            try {
+                if (!multiplayer.connected) {
+                    await multiplayer.connect();
+                }
+                
+                if (multiplayer.connected) {
+                    multiplayer.joinGame(gameId);
+                    addLog(`🚪 ${gameId} odasına katılınıyor...`, 'info');
+                } else {
+                    alert('❌ Sunucuya bağlanamıyor! Lütfen server.js çalıştırın.');
+                    return;
+                }
+                
+                document.querySelector('.modal').remove();
+                hideMainMenu();
+                initGame();
+                
+            } catch (error) {
+                alert('❌ Sunucu bağlantı hatası: ' + error.message);
+                console.error('Multiplayer bağlantı hatası:', error);
+            }
+        }
+    </script>
+</body>
+</html>
