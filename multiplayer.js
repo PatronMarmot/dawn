@@ -11,7 +11,6 @@ class MultiplayerManager {
         this.opponent = null;
         this.isMyTurn = false;
         this.connected = false;
-        this.serverUrl = 'wss://epic-card-battle-server.herokuapp.com'; // Placeholder server
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
     }
@@ -21,24 +20,32 @@ class MultiplayerManager {
         try {
             addLog('🌐 Multiplayer sunucusuna bağlanılıyor...', 'info');
             
-            // Gerçek sunucu bağlantısı
+            // Güncellenmiş sunucu listesi
             const servers = [
-                'ws://localhost:8080',
-                'wss://epic-card-demo.onrender.com'
+                'ws://localhost:8080',              // Local development
+                'wss://dawn-fi92.onrender.com'      // Production Render server
             ];
             
             for (const serverUrl of servers) {
                 try {
+                    addLog(`🔍 Deneniyor: ${serverUrl}`, 'info');
                     await this.tryConnect(serverUrl);
+                    addLog(`✅ Bağlandı: ${serverUrl}`, 'win');
                     break;
                 } catch (e) {
-                    console.log(`❌ ${serverUrl} bağlantısı başarısız`);
+                    console.log(`❌ ${serverUrl} bağlantısı başarısız:`, e.message);
+                    addLog(`❌ ${serverUrl} erişilemez`, 'error');
                     continue;
                 }
             }
             
+            if (!this.connected) {
+                throw new Error('Hiçbir sunucuya bağlanılamadı');
+            }
+            
         } catch (error) {
             console.error('🚫 Tüm serverlar erişilemez:', error);
+            addLog('🚫 Multiplayer server erişilemez', 'error');
             this.showOfflineMode();
         }
     }
@@ -48,24 +55,27 @@ class MultiplayerManager {
         return new Promise((resolve, reject) => {
             this.socket = new WebSocket(serverUrl);
             
+            // 15 saniye timeout (Render cold start için)
             const timeout = setTimeout(() => {
                 this.socket.close();
-                reject(new Error('Timeout'));
-            }, 5000);
+                reject(new Error('Timeout (15 saniye)'));
+            }, 15000);
 
             this.socket.onopen = () => {
                 clearTimeout(timeout);
-                console.log('✅ Bağlandı:', serverUrl);
+                console.log('✅ WebSocket bağlandı:', serverUrl);
                 this.connected = true;
                 this.reconnectAttempts = 0;
                 this.playerId = this.generateId();
                 this.playerName = 'Oyuncu' + Math.floor(Math.random() * 1000);
                 
+                // Sunucuya bağlantı bilgisi gönder
                 this.sendMessage({
                     type: 'player_connected',
                     playerId: this.playerId,
                     playerName: this.playerName,
-                    version: '2.0'
+                    version: '2.0',
+                    timestamp: Date.now()
                 });
                 
                 addLog('🎮 Online multiplayer aktif!', 'win');
@@ -82,21 +92,23 @@ class MultiplayerManager {
                 }
             };
 
-            this.socket.onclose = () => {
+            this.socket.onclose = (event) => {
                 clearTimeout(timeout);
+                console.log('🔌 WebSocket bağlantısı kapandı:', event.code, event.reason);
                 this.connected = false;
                 this.updateMultiplayerUI(false);
                 
+                // Otomatik yeniden bağlanma
                 if (this.reconnectAttempts < this.maxReconnectAttempts) {
                     this.reconnectAttempts++;
                     addLog(`🔄 Yeniden bağlanılıyor... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`, 'info');
-                    setTimeout(() => this.connect(), 3000);
+                    setTimeout(() => this.connect(), 3000 * this.reconnectAttempts);
                 } else {
                     addLog('❌ Bağlantı kalıcı olarak koptu', 'error');
                     this.showOfflineMode();
                 }
                 
-                reject(new Error('Connection closed'));
+                reject(new Error('Connection closed: ' + event.reason));
             };
 
             this.socket.onerror = (error) => {
@@ -112,13 +124,16 @@ class MultiplayerManager {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             try {
                 this.socket.send(JSON.stringify(message));
+                console.log('📤 Mesaj gönderildi:', message.type);
                 return true;
             } catch (e) {
                 console.error('📤 Mesaj gönderim hatası:', e);
                 return false;
             }
+        } else {
+            console.warn('📤 Mesaj gönderilemedi: WebSocket bağlı değil');
+            return false;
         }
-        return false;
     }
 
     // Oyun odası oluştur
@@ -136,11 +151,14 @@ class MultiplayerManager {
             gameId: this.gameId,
             playerId: this.playerId,
             playerName: this.playerName,
-            gameMode: '3v3_spells'
+            gameMode: '3v3_spells',
+            timestamp: Date.now()
         });
 
         if (success) {
             addLog('🏠 Oyun odası oluşturuluyor...', 'info');
+        } else {
+            addLog('❌ Oyun oluşturulamadı!', 'error');
         }
     }
 
@@ -163,85 +181,20 @@ class MultiplayerManager {
             type: 'join_game',
             gameId: this.gameId,
             playerId: this.playerId,
-            playerName: this.playerName
+            playerName: this.playerName,
+            timestamp: Date.now()
         });
 
         if (success) {
             addLog(`🚪 ${this.gameId} odasına katılınıyor...`, 'info');
+        } else {
+            addLog('❌ Oyuna katılınamadı!', 'error');
         }
-    }
-
-    // Kart oyna (multiplayer)
-    playCard(cardData, position) {
-        if (!this.isMyTurn) {
-            addLog('❌ Sizin turunuz değil!', 'error');
-            return false;
-        }
-
-        return this.sendMessage({
-            type: 'card_played',
-            gameId: this.gameId,
-            playerId: this.playerId,
-            cardData: this.sanitizeCardData(cardData),
-            position: position,
-            timestamp: Date.now()
-        });
-    }
-
-    // Büyü kullan (multiplayer)
-    castSpell(spellData, targetId = null) {
-        if (!this.isMyTurn) {
-            addLog('❌ Sizin turunuz değil!', 'error');
-            return false;
-        }
-
-        return this.sendMessage({
-            type: 'spell_cast',
-            gameId: this.gameId,
-            playerId: this.playerId,
-            spellData: this.sanitizeCardData(spellData),
-            targetId: targetId,
-            timestamp: Date.now()
-        });
-    }
-
-    // Savaş başlat (multiplayer)
-    startBattle() {
-        if (!this.isMyTurn) {
-            addLog('❌ Sizin turunuz değil!', 'error');
-            return false;
-        }
-
-        return this.sendMessage({
-            type: 'battle_start',
-            gameId: this.gameId,
-            playerId: this.playerId,
-            playerCards: gameState.playerBattleCards.map(card => this.sanitizeCardData(card)),
-            spellCards: gameState.playerSpellCards.map(card => this.sanitizeCardData(card)),
-            timestamp: Date.now()
-        });
-    }
-
-    // Tur bitir
-    endTurn() {
-        if (!this.isMyTurn) {
-            return false;
-        }
-
-        this.isMyTurn = false;
-        this.updateTurnUI();
-        
-        return this.sendMessage({
-            type: 'end_turn',
-            gameId: this.gameId,
-            playerId: this.playerId,
-            timestamp: Date.now()
-        });
     }
 
     // Mesaj işleyici
     handleMessage(message) {
-        console.log('📨 Gelen mesaj:', message.type);
+        console.log('📨 Gelen mesaj:', message.type, message);
         
         switch(message.type) {
             case 'game_created':
@@ -274,12 +227,14 @@ class MultiplayerManager {
             case 'error':
                 this.onError(message);
                 break;
+            default:
+                console.warn('🤷 Bilinmeyen mesaj türü:', message.type);
         }
     }
 
     // Event Handler'lar
     onGameCreated(message) {
-        addLog(`🏠 Oyun odası oluşturuldu! Paylaş: ${this.gameId}`, 'win');
+        addLog(`🏠 Oyun odası oluşturuldu! ID: ${this.gameId}`, 'win');
         this.showWaitingRoom();
     }
 
@@ -287,15 +242,17 @@ class MultiplayerManager {
         this.opponent = message.opponent;
         addLog(`👥 ${this.opponent.name} oyuna katıldı!`, 'info');
         
-        // Otomatik başlatma (host)
+        // Host otomatik oyunu başlatır
         if (this.isHost) {
+            addLog('🎮 Oyun 3 saniye içinde başlayacak...', 'info');
             setTimeout(() => {
                 this.sendMessage({
                     type: 'start_game',
                     gameId: this.gameId,
-                    playerId: this.playerId
+                    playerId: this.playerId,
+                    timestamp: Date.now()
                 });
-            }, 2000);
+            }, 3000);
         }
     }
 
@@ -303,100 +260,53 @@ class MultiplayerManager {
         addLog('🎮 Multiplayer oyun başlıyor!', 'win');
         this.closeWaitingRoom();
         
-        // Oyunu başlat
-        gameState.isMultiplayer = true;
-        gameState.multiplayerManager = this;
-        
-        // İlk tur
-        this.isMyTurn = message.firstPlayer === this.playerId;
-        this.updateTurnUI();
-    }
-
-    onOpponentCardPlayed(message) {
-        if (message.playerId === this.playerId) return;
-        
-        // Rakibin kartını oluştur ve yerleştir
-        const opponentCard = this.createCardFromData(message.cardData);
-        
-        if (message.position === 'battle') {
-            gameState.botBattleCards.push(opponentCard);
-        } else if (message.position === 'spell') {
-            gameState.botSpellCards.push(opponentCard);
+        // Oyun durumunu multiplayer'a çevir
+        if (typeof gameState !== 'undefined') {
+            gameState.isMultiplayer = true;
+            gameState.multiplayerManager = this;
         }
         
-        addLog(`🎯 ${this.opponent.name}: ${message.cardData.name} oynadı`, 'info');
-        updateUI();
-    }
-
-    onOpponentSpellCast(message) {
-        if (message.playerId === this.playerId) return;
-        
-        addLog(`🔮 ${this.opponent.name}: ${message.spellData.name} kullandı!`, 'battle');
-        
-        // Büyü efektini göster
-        this.showSpellEffect(message.spellData, message.targetId);
-    }
-
-    onTurnChanged(message) {
-        this.isMyTurn = message.currentPlayer === this.playerId;
+        // İlk turu belirle
+        this.isMyTurn = message.firstPlayer === this.playerId;
         this.updateTurnUI();
         
         if (this.isMyTurn) {
-            addLog('⏰ Sizin turunuz! (30 saniye)', 'win');
-            this.startTurnTimer();
+            addLog('⏰ Sizin ilk turunuz!', 'win');
         } else {
-            addLog(`⏳ ${this.opponent.name}'in turu...`, 'info');
+            addLog(`⏳ ${this.opponent.name} başlıyor...`, 'info');
         }
     }
 
-    onGameEnded(message) {
-        const won = message.winner === this.playerId;
-        const title = won ? '🏆 KAZANDIN!' : '💔 KAYBETTİN!';
-        const msg = message.reason || 'Oyun bitti';
-        
-        addLog(`${title} ${msg}`, won ? 'win' : 'lose');
-        
-        setTimeout(() => {
-            showGameOver(title, msg);
-            this.resetMultiplayerState();
-        }, 2000);
-    }
-
-    onPlayerDisconnected(message) {
-        addLog(`❌ ${message.playerName} oyundan ayrıldı`, 'error');
-        
-        // Kazanma veya ana menüye dönme seçeneği sun
-        setTimeout(() => {
-            if (confirm('Rakibiniz oyundan ayrıldı. Ana menüye dönmek ister misiniz?')) {
-                showMainMenu();
-                this.resetMultiplayerState();
-            }
-        }, 1000);
-    }
-
     onError(message) {
-        addLog(`❌ Hata: ${message.message}`, 'error');
+        addLog(`❌ Server Hatası: ${message.message}`, 'error');
         console.error('Server error:', message);
     }
 
     // UI Yardımcı Fonksiyonlar
     showWaitingRoom() {
+        // Mevcut waiting room varsa kaldır
+        this.closeWaitingRoom();
+        
         const modal = document.createElement('div');
         modal.id = 'waitingRoom';
         modal.className = 'modal';
         modal.style.display = 'flex';
         modal.innerHTML = `
             <div class="modal-content">
-                <h2>🏠 Oyun Odası</h2>
+                <h2>🏠 Oyun Odası Hazır!</h2>
                 <div class="waiting-content">
-                    <p>Oyun ID: <strong class="game-id-display">${this.gameId}</strong></p>
-                    <button onclick="navigator.clipboard.writeText('${this.gameId}')" class="copy-btn">📋 Kopyala</button>
+                    <p>Oyun ID'nizi paylaşın:</p>
+                    <div class="game-id-container">
+                        <strong class="game-id-display">${this.gameId}</strong>
+                        <button onclick="navigator.clipboard.writeText('${this.gameId}').then(() => addLog('📋 ID kopyalandı!', 'info'))" class="copy-btn">📋 Kopyala</button>
+                    </div>
                     <div class="waiting-spinner">
                         <div class="spinner"></div>
-                        <p>Başka bir oyuncunun katılması bekleniyor...</p>
+                        <p>İkinci oyuncunun katılması bekleniyor...</p>
+                        <p><small>ID'yi arkadaşınıza gönderin!</small></p>
                     </div>
                 </div>
-                <button onclick="multiplayer.cancelGame()" class="menu-btn secondary-btn">❌ İptal</button>
+                <button onclick="multiplayer.cancelGame()" class="menu-btn secondary-btn">❌ İptal Et</button>
             </div>
         `;
         document.body.appendChild(modal);
@@ -410,135 +320,35 @@ class MultiplayerManager {
     }
 
     updateMultiplayerUI(connected) {
-        const statusElement = document.getElementById('multiplayerStatus');
-        if (statusElement) {
-            statusElement.textContent = connected ? '🟢 Online' : '🔴 Offline';
-            statusElement.className = connected ? 'online-status' : 'offline-status';
-        }
+        // Bağlantı durumu göstergelerini güncelle
+        const statusElements = document.querySelectorAll('[id*="status"], [class*="status"]');
+        statusElements.forEach(el => {
+            if (el.textContent.includes('Sunucu') || el.textContent.includes('Bağlantı')) {
+                el.textContent = connected ? '🟢 Bağlantı başarılı!' : '🔴 Sunucu erişilemez';
+                el.style.color = connected ? '#10b981' : '#ef4444';
+            }
+        });
+        
+        // Multiplayer butonlarını aktif/pasif yap
+        const multiplayerButtons = document.querySelectorAll('#createGameBtn, #joinGameBtn');
+        multiplayerButtons.forEach(btn => {
+            if (btn) {
+                btn.disabled = !connected;
+                btn.style.opacity = connected ? '1' : '0.5';
+            }
+        });
     }
 
     updateTurnUI() {
-        const battleBtn = document.getElementById('battleBtn');
-        const playerCards = document.querySelectorAll('#playerCards .card');
-        const useSpellBtn = document.getElementById('useSpellBtn');
+        const body = document.body;
         
         if (this.isMyTurn) {
-            // Benim turum
-            document.body.classList.add('my-turn');
-            document.body.classList.remove('opponent-turn');
-            
-            if (playerCards) {
-                playerCards.forEach(card => {
-                    card.style.opacity = '1';
-                    card.style.pointerEvents = 'auto';
-                });
-            }
+            body.classList.add('my-turn');
+            body.classList.remove('opponent-turn');
         } else {
-            // Rakibin turu
-            document.body.classList.add('opponent-turn');
-            document.body.classList.remove('my-turn');
-            
-            if (playerCards) {
-                playerCards.forEach(card => {
-                    card.style.opacity = '0.5';
-                    card.style.pointerEvents = 'none';
-                });
-            }
-            
-            if (battleBtn) battleBtn.disabled = true;
-            if (useSpellBtn) useSpellBtn.disabled = true;
+            body.classList.add('opponent-turn');
+            body.classList.remove('my-turn');
         }
-    }
-
-    startTurnTimer() {
-        // 30 saniye tur limiti
-        this.turnTimer = setTimeout(() => {
-            if (this.isMyTurn) {
-                addLog('⏰ Süre doldu! Tur otomatik geçiliyor...', 'warning');
-                this.endTurn();
-            }
-        }, 30000);
-    }
-
-    // Yardımcı Fonksiyonlar
-    generateId() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = '';
-        for (let i = 0; i < 6; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    }
-
-    sanitizeCardData(card) {
-        return {
-            id: card.id,
-            name: card.name,
-            type: card.type,
-            attack: card.attack,
-            defense: card.defense,
-            currentHealth: card.currentHealth,
-            maxHealth: card.maxHealth,
-            icon: card.icon,
-            image: card.image,
-            description: card.description,
-            cssClass: card.cssClass,
-            isSpell: card.isSpell,
-            spellType: card.spellType,
-            spellValue: card.spellValue
-        };
-    }
-
-    createCardFromData(cardData) {
-        return {
-            id: cardData.id + '_opponent',
-            name: cardData.name,
-            type: cardData.type,
-            attack: cardData.attack,
-            defense: cardData.defense,
-            currentHealth: cardData.currentHealth || cardData.defense,
-            maxHealth: cardData.maxHealth || cardData.defense,
-            icon: cardData.icon,
-            image: cardData.image,
-            description: cardData.description,
-            cssClass: cardData.cssClass,
-            isSpell: cardData.isSpell || false,
-            spellType: cardData.spellType,
-            spellValue: cardData.spellValue,
-            _isOpponent: true
-        };
-    }
-
-    showSpellEffect(spellData, targetId) {
-        // Görsel büyü efekti göster
-        const effectElement = document.createElement('div');
-        effectElement.className = 'multiplayer-spell-effect';
-        effectElement.innerHTML = `
-            <div class="spell-animation">
-                ${spellData.icon} ${spellData.name}
-            </div>
-        `;
-        effectElement.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10000;
-            font-size: 2rem;
-            font-weight: bold;
-            color: #a855f7;
-            text-shadow: 0 0 20px #a855f7;
-            animation: spellBurst 2s ease-out forwards;
-            pointer-events: none;
-        `;
-        
-        document.body.appendChild(effectElement);
-        
-        setTimeout(() => {
-            if (effectElement.parentNode) {
-                effectElement.parentNode.removeChild(effectElement);
-            }
-        }, 2000);
     }
 
     showOfflineMode() {
@@ -547,11 +357,12 @@ class MultiplayerManager {
     }
 
     cancelGame() {
-        if (this.gameId) {
+        if (this.gameId && this.connected) {
             this.sendMessage({
                 type: 'cancel_game',
                 gameId: this.gameId,
-                playerId: this.playerId
+                playerId: this.playerId,
+                timestamp: Date.now()
             });
         }
         
@@ -566,77 +377,80 @@ class MultiplayerManager {
         this.isHost = false;
         this.isMyTurn = false;
         
-        if (this.turnTimer) {
-            clearTimeout(this.turnTimer);
-            this.turnTimer = null;
-        }
-        
-        // Game state'i temizle
-        if (window.gameState) {
+        // Game state temizle
+        if (typeof gameState !== 'undefined') {
             gameState.isMultiplayer = false;
             gameState.multiplayerManager = null;
         }
         
+        // UI sınıflarını temizle
         document.body.classList.remove('my-turn', 'opponent-turn');
     }
 
-    // Bağlantıyı kapat
+    // Bağlantıyı tamamen kapat
     disconnect() {
         if (this.socket) {
-            this.socket.close();
+            this.socket.close(1000, 'User disconnect');
             this.socket = null;
         }
+        
         this.connected = false;
         this.updateMultiplayerUI(false);
         this.resetMultiplayerState();
+    }
+
+    // Yardımcı Fonksiyonlar
+    generateId() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
     }
 }
 
 // Global multiplayer manager
 const multiplayer = new MultiplayerManager();
 
-// CSS animasyonları ekle
+// CSS animasyonları
 const multiplayerCSS = `
 <style>
-.my-turn {
-    --primary-glow: #10b981;
+.my-turn::before {
+    content: "⏰ SİZİN TURUNUZ";
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(16, 185, 129, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    z-index: 9999;
+    animation: turnPulse 2s infinite;
 }
 
-.opponent-turn {
-    --primary-glow: #ef4444;
+.opponent-turn::before {
+    content: "⏳ RAKIP TURU";
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    z-index: 9999;
+    animation: turnPulse 2s infinite;
 }
 
-.my-turn .battle-btn {
-    animation: myTurnGlow 2s infinite;
-}
-
-.opponent-turn .arena {
-    animation: opponentTurnPulse 3s infinite;
-}
-
-@keyframes myTurnGlow {
-    0%, 100% { box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); }
-    50% { box-shadow: 0 15px 35px rgba(16, 185, 129, 0.8); }
-}
-
-@keyframes opponentTurnPulse {
-    0%, 100% { border-color: #ef4444; }
-    50% { border-color: #f97316; }
-}
-
-@keyframes spellBurst {
-    0% {
-        transform: translate(-50%, -50%) scale(0.5);
-        opacity: 0;
-    }
-    50% {
-        transform: translate(-50%, -50%) scale(1.5);
-        opacity: 1;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 0;
-    }
+@keyframes turnPulse {
+    0%, 100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
 }
 
 .spinner {
@@ -662,6 +476,7 @@ const multiplayerCSS = `
     color: #6366f1;
     font-size: 1.2rem;
     letter-spacing: 2px;
+    margin: 0.5rem;
 }
 
 .copy-btn {
@@ -680,21 +495,17 @@ const multiplayerCSS = `
     color: white;
 }
 
-.online-status {
-    color: #10b981;
-}
-
-.offline-status {
-    color: #ef4444;
-}
-
 .waiting-content {
     text-align: center;
     padding: 2rem;
 }
 
-.multiplayer-spell-effect {
-    z-index: 10000;
+.game-id-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 1rem 0;
 }
 </style>
 `;
