@@ -20,10 +20,11 @@ class MultiplayerManager {
         try {
             addLog('🌐 Multiplayer sunucusuna bağlanılıyor...', 'info');
             
-            // Güncellenmiş sunucu listesi (HTTPS uyumlu)
+            // Güncellenmiş sunucu listesi (Vercel)
             const servers = [
-                'wss://dawn-fi92.onrender.com',     // Render WSS (güvenli)
-                'ws://localhost:8080'               // Local development (sadece localhost'ta)
+                'ws://localhost:8080',                           // Local development
+                'wss://dawn-epic-card.vercel.app/api/websocket', // Vercel production
+                'wss://dawn-fi92.onrender.com'                   // Render backup
             ];
             
             for (const serverUrl of servers) {

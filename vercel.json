@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "functions": {
+    "api/websocket.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/websocket",
+      "destination": "/api/websocket"
+    }
+  ]
+}
