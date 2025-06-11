@@ -8,7 +8,7 @@ class EpicCardBattleServer {
     constructor() {
         this.games = new Map(); // gameId -> game data
         this.players = new Map(); // ws -> player data
-        this.port = process.env.PORT || 8080;
+        this.port = process.env.PORT || 10000;
         
         this.server = http.createServer();
         this.wss = new WebSocket.Server({ 
