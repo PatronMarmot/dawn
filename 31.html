@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönlendiriliyor...</title>
+    
+    <!-- Anında yönlendirme -->
+    <meta http-equiv="refresh" content="0; url=https://www.google.com">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        .countdown {
+            font-size: 3em;
+            font-weight: bold;
+            color: #FFD700;
+            animation: bounce 1s infinite;
+        }
+        
+        .manual-link {
+            margin-top: 30px;
+        }
+        
+        .manual-link a {
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: bold;
+            border: 2px solid #FFD700;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .manual-link a:hover {
+            background: #FFD700;
+            color: #667eea;
+            transform: scale(1.05);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Yönlendiriliyor</h1>
+        <p>Siz değerli ziyaretçimizi yeni adresimize yönlendiriyoruz...</p>
+        
+        <div class="spinner"></div>
+        
+        <div class="countdown" id="countdown">3</div>
+        <p>saniye sonra otomatik yönlendirme</p>
+        
+        <div class="manual-link">
+            <a href="https://www.pornhub.com/" id="manualLink">Manuel Olarak Git</a>
+        </div>
+    </div>
+
+    <script>
+        // Anında yönlendirme
+        window.location.href = redirectURL;
+    </script>
+</body>
+</html>
