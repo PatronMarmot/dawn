@@ -1,4 +1,4 @@
-// Epic Card Battle - Fixed Multiplayer System
+// Epic Card Battle - Fixed Multiplayer System (Connection Fixed)
 // Socket.io + Local Server Support
 
 class MultiplayerManager {
@@ -21,12 +21,12 @@ class MultiplayerManager {
         try {
             addLog('🌐 Multiplayer sistemi başlatılıyor...', 'info');
             
-            // Socket.io + Local server URLs
+            // Socket.io server URLs (FIXED ORDER)
             const servers = [
-                'http://localhost:8080',                     // Local Socket.io server
+                'http://localhost:8080',                     // Local Socket.io server (PRIMARY)
                 'https://dawn-epic-card.onrender.com',       // Render production
                 'wss://dawn-epic-card.vercel.app',          // Vercel backup
-                'LOCAL_MODE'                                 // Local browser mode
+                'LOCAL_MODE'                                 // Local browser mode (FALLBACK)
             ];
             
             for (const serverUrl of servers) {
@@ -39,7 +39,7 @@ class MultiplayerManager {
                         break;
                     } else {
                         await this.trySocketIO(serverUrl);
-                        addLog(`✅ Bağlandı: ${serverUrl}`, 'win');
+                        addLog(`✅ Socket.io bağlandı: ${serverUrl}`, 'win');
                         break;
                     }
                 } catch (e) {
@@ -66,51 +66,63 @@ class MultiplayerManager {
         return new Promise((resolve, reject) => {
             // Socket.io client kontrolü
             if (typeof io === 'undefined') {
-                // Socket.io CDN yükle
-                const script = document.createElement('script');
-                script.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
-                script.onload = () => this.connectSocketIO(serverUrl, resolve, reject);
-                script.onerror = () => reject(new Error('Socket.io CDN yüklenemedi'));
-                document.head.appendChild(script);
-            } else {
-                this.connectSocketIO(serverUrl, resolve, reject);
+                reject(new Error('Socket.io client not loaded'));
+                return;
             }
-        });
-    }
 
-    connectSocketIO(serverUrl, resolve, reject) {
-        const timeout = setTimeout(() => {
-            if (this.socket) this.socket.disconnect();
-            reject(new Error('Bağlantı timeout (10 saniye)'));
-        }, 10000);
-
-        this.socket = io(serverUrl, {
-            transports: ['websocket', 'polling'],
-            timeout: 8000,
-            forceNew: true,
-            reconnection: false
-        });
-
-        this.socket.on('connect', () => {
-            clearTimeout(timeout);
-            console.log('✅ Socket.io connected:', serverUrl);
-            this.connected = true;
-            this.setupSocketIOEvents();
+            console.log('🔌 Socket.io ile bağlanılıyor:', serverUrl);
             
-            this.playerId = this.socket.id;
-            this.playerName = 'Oyuncu' + Math.floor(Math.random() * 1000);
-            
-            this.socket.emit('register_player', {
-                name: this.playerName
+            const timeout = setTimeout(() => {
+                if (this.socket) {
+                    this.socket.disconnect();
+                }
+                reject(new Error('Bağlantı timeout (8 saniye)'));
+            }, 8000);
+
+            // Socket.io bağlantısı
+            this.socket = io(serverUrl, {
+                transports: ['websocket', 'polling'],
+                timeout: 5000,
+                forceNew: true,
+                reconnection: false,
+                autoConnect: true
             });
-            
-            this.updateMultiplayerUI(true);
-            resolve();
-        });
 
-        this.socket.on('connect_error', (error) => {
-            clearTimeout(timeout);
-            reject(error);
+            this.socket.on('connect', () => {
+                clearTimeout(timeout);
+                console.log('✅ Socket.io connected to:', serverUrl);
+                this.connected = true;
+                this.setupSocketIOEvents();
+                
+                this.playerId = this.socket.id;
+                this.playerName = 'Oyuncu' + Math.floor(Math.random() * 1000);
+                
+                // Register player
+                this.socket.emit('register_player', {
+                    name: this.playerName
+                });
+                
+                this.updateMultiplayerUI(true);
+                console.log('🎮 Socket.io multiplayer ready!');
+                resolve();
+            });
+
+            this.socket.on('connect_error', (error) => {
+                clearTimeout(timeout);
+                console.error('❌ Socket.io connection error:', error);
+                this.connected = false;
+                if (this.socket) {
+                    this.socket.disconnect();
+                }
+                reject(new Error('Socket.io connection failed: ' + error.message));
+            });
+
+            this.socket.on('disconnect', (reason) => {
+                console.log('🔌 Socket.io disconnected:', reason);
+                this.connected = false;
+                this.updateMultiplayerUI(false);
+                addLog('❌ Server bağlantısı kesildi', 'error');
+            });
         });
     }
 
@@ -134,7 +146,10 @@ class MultiplayerManager {
 
     // Socket.io events setup
     setupSocketIOEvents() {
+        if (!this.socket) return;
+
         this.socket.on('player_registered', (data) => {
+            console.log('👤 Player registered:', data);
             addLog('🎮 Socket.io server bağlantısı başarılı!', 'win');
         });
 
@@ -148,11 +163,17 @@ class MultiplayerManager {
         this.socket.on('player_disconnected', (data) => this.onPlayerDisconnected(data));
         this.socket.on('error', (data) => this.onError(data));
 
-        this.socket.on('disconnect', () => {
-            this.connected = false;
-            this.updateMultiplayerUI(false);
-            addLog('❌ Server bağlantısı kesildi', 'error');
+        // Connection health check
+        this.socket.on('pong', (data) => {
+            console.log('💓 Server heartbeat OK');
         });
+
+        // Send periodic ping
+        this.heartbeatInterval = setInterval(() => {
+            if (this.socket && this.socket.connected) {
+                this.socket.emit('ping');
+            }
+        }, 30000); // 30 saniye
     }
 
     // Local message handler
@@ -191,12 +212,14 @@ class MultiplayerManager {
         
         if (this.socket && this.socket.connected) {
             // Socket.io mode
+            console.log('🏠 Socket.io ile oyun oluşturuluyor:', this.gameId);
             this.socket.emit('create_game', {
                 gameId: this.gameId,
                 playerName: this.playerName
             });
         } else {
             // Local mode
+            console.log('🏠 Local mode ile oyun oluşturuluyor:', this.gameId);
             localStorage.setItem(`epic_game_${this.gameId}`, JSON.stringify({
                 type: 'game_created',
                 gameId: this.gameId,
@@ -231,6 +254,7 @@ class MultiplayerManager {
         
         if (this.socket && this.socket.connected) {
             // Socket.io mode
+            console.log('🚪 Socket.io ile oyuna katılınıyor:', this.gameId);
             this.socket.emit('join_game', {
                 gameId: this.gameId,
                 playerName: this.playerName
@@ -244,6 +268,7 @@ class MultiplayerManager {
             }
             
             // Join local game
+            console.log('🚪 Local mode ile oyuna katılınıyor:', this.gameId);
             localStorage.setItem(`epic_game_${this.gameId}_join`, JSON.stringify({
                 type: 'join_game',
                 gameId: this.gameId,
@@ -421,7 +446,7 @@ class MultiplayerManager {
                     <div class="waiting-spinner">
                         <div class="spinner"></div>
                         <p>İkinci oyuncunun katılması bekleniyor...</p>
-                        <p><small>${this.socket ? 'Online Server' : 'Local Mode'} - ID'yi paylaşın!</small></p>
+                        <p><small>${this.socket?.connected ? 'Socket.io Server' : 'Local Mode'} - ID\'yi paylaşın!</small></p>
                     </div>
                 </div>
                 <button onclick="multiplayer.cancelGame()" class="menu-btn secondary-btn">❌ İptal Et</button>
@@ -439,7 +464,7 @@ class MultiplayerManager {
         const statusElements = document.querySelectorAll('[id*="status"], [class*="status"]');
         statusElements.forEach(el => {
             if (el.textContent.includes('Sunucu') || el.textContent.includes('Bağlantı')) {
-                const mode = this.socket ? 'Socket.io Server' : 'Local Mode';
+                const mode = this.socket?.connected ? 'Socket.io Server' : 'Local Mode';
                 el.textContent = connected ? `🟢 ${mode} aktif!` : '🔴 Multiplayer hazırlanıyor...';
                 el.style.color = connected ? '#10b981' : '#ef4444';
             }
@@ -499,6 +524,10 @@ class MultiplayerManager {
     }
 
     disconnect() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+        }
+        
         if (this.socket) {
             this.socket.disconnect();
             this.socket = null;
@@ -524,7 +553,6 @@ const multiplayer = new MultiplayerManager();
 
 // CSS animasyonları
 const multiplayerCSS = `
-<style>
 .my-turn::before {
     content: "⏰ SİZİN TURUNUZ";
     position: fixed;
@@ -616,18 +644,17 @@ const multiplayerCSS = `
     flex-wrap: wrap;
     margin: 1rem 0;
 }
-</style>
 `;
 
 // CSS'i head'e ekle
 if (!document.querySelector('#multiplayer-css')) {
     const styleElement = document.createElement('style');
     styleElement.id = 'multiplayer-css';
-    styleElement.textContent = multiplayerCSS.replace('<style>', '').replace('</style>', '');
+    styleElement.textContent = multiplayerCSS;
     document.head.appendChild(styleElement);
 }
 
 // Export
 window.multiplayer = multiplayer;
 
-console.log('🚀 Epic Card Battle Multiplayer System Fixed & Ready!');
+console.log('🚀 Epic Card Battle Multiplayer System - Connection Fixed!');
