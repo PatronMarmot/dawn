@@ -53,29 +53,33 @@ echo - Socket.io endpoint ready
 echo - CORS enabled for all origins
 echo.
 echo TESTING INSTRUCTIONS:
-echo 1. Server calistiktan sonra tarayicida: http://localhost:8080
-echo 2. Ana menuye git ve "COK OYUNCULU" tikla
-echo 3. Birinci tab: "OYUN OLUSTUR"
-echo 4. Ikinci tab ac ve ayni ID ile "OYUNA KATIL"
-echo 5. Otomatik oyun baslayacak!
+echo 1. Server baslatildi (bu pencere)
+echo 2. Tarayicida http://localhost:8080 ac
+echo 3. F12 Debug Panel icin F12 bas
+echo 4. COK OYUNCULU butonuna bas
+echo 5. OYUN OLUSTUR veya OYUNA KATIL
+echo 6. Test icin ikinci sekme ac
 echo.
-echo Press Ctrl+C to stop server
+echo Server durdurmak icin Ctrl+C basin
 echo ========================================
 echo.
 
-:: Start the Socket.io server
+:: Set environment variables
+set NODE_ENV=development
+set PORT=8080
+
+:: Start the server
+echo Starting server-socketio.js...
 node server-socketio.js
 
-:: If server stops, pause to see any error messages
-if %errorlevel% neq 0 (
-    echo.
-    echo ERROR: Server durdu! Hata kodu: %errorlevel%
-    echo.
-    echo Common solutions:
-    echo - Port 8080 zaten kullaniliyor olabilir
-    echo - Windows Defender/Firewall engelleme
-    echo - Dependencies eksik: npm install
-    echo.
-)
-
+:: If server exits, show error
+echo.
+echo ========================================
+echo SERVER DURDURULDU!
+echo.
+echo Hata varsa kontrol edin:
+echo - Port 8080 kullaniliyor mu?
+echo - Dependencies yuklu mu? (npm install)
+echo - server-socketio.js dosyasi mevcut mu?
+echo ========================================
 pause
