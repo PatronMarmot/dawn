@@ -597,6 +597,8 @@ class MultiplayerManager {
         // Online oyuncu listesini güncelle
         if (typeof updatePlayersList === 'function') {
             updatePlayersList(data.players);
+        } else {
+            console.log('Online players updated:', data.count);
         }
     }
     
