@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epic Card Battle - Custom Multiplayer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            flex: 1;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+        }
+        
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 25px;
+            font-size: 1rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .game-area, .multiplayer-panel {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .game-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .info-card {
+            background: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .info-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #60a5fa;
+        }
+        
+        .game-board {
+            min-height: 400px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed rgba(255,255,255,0.2);
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .empty-board {
+            text-align: center;
+            opacity: 0.6;
+        }
+        
+        .menu-grid {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-primary { background: linear-gradient(45deg, #10b981, #059669); }
+        .btn-secondary { background: linear-gradient(45deg, #f59e0b, #d97706); }
+        .btn-danger { background: linear-gradient(45deg, #ef4444, #dc2626); }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1rem;
+            margin: 0.5rem 0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .input::placeholder { color: rgba(255,255,255,0.6); }
+        
+        .input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+        
+        .room-code {
+            background: rgba(99, 102, 241, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid #6366f1;
+            color: #6366f1;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            margin: 1rem 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .copy-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid #6366f1;
+            color: #6366f1;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .log {
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 1rem;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+        }
+        
+        .log-info { color: #60a5fa; }
+        .log-success { color: #34d399; }
+        .log-warning { color: #fbbf24; }
+        .log-error { color: #f87171; }
+        
+        .connection-methods {
+            margin-bottom: 2rem;
+        }
+        
+        .method-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .method-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+        
+        .method-status.success { background: #10b981; }
+        .method-status.warning { background: #f59e0b; }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .game-info {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="title">🎮 EPIC CARD BATTLE</h1>
+            <p class="subtitle">Custom Multiplayer System - No Socket.io Required!</p>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Ready!</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Game Area -->
+            <div class="game-area">
+                <h2 class="section-title">🎯 Game Area</h2>
+                
+                <div class="game-info" id="gameInfo">
+                    <div class="info-card">
+                        <div class="info-label">Player ID</div>
+                        <div class="info-value" id="playerId">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Game Room</div>
+                        <div class="info-value" id="gameRoom">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Opponent</div>
+                        <div class="info-value" id="opponentInfo">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Turn</div>
+                        <div class="info-value" id="turnInfo">-</div>
+                    </div>
+                </div>
+                
+                <div class="game-board" id="gameBoard">
+                    <div class="empty-board">
+                        <h3>🃏 Ready for Multiplayer Battle!</h3>
+                        <p>Create or join a room to start playing</p>
+                        <div style="margin-top: 2rem;">
+                            <button class="btn" onclick="testGameActions()">🎮 Test Game Actions</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multiplayer Panel -->
+            <div class="multiplayer-panel">
+                <h2 class="section-title">🌐 Multiplayer</h2>
+                
+                <!-- Connection Methods -->
+                <div class="connection-methods">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Connection Status:</h3>
+                    <div class="method-item">
+                        <span>🏠 LocalStorage</span>
+                        <div class="method-status success" id="localStatus"></div>
+                    </div>
+                    <div class="method-item">
+                        <span>🔗 WebRTC P2P</span>
+                        <div class="method-status" id="webrtcStatus"></div>
+                    </div>
+                    <div class="method-item">
+                        <span>📡 Firebase</span>
+                        <div class="method-status" id="firebaseStatus"></div>
+                    </div>
+                </div>
+                
+                <!-- Game Actions -->
+                <div class="menu-grid">
+                    <button class="btn btn-primary" onclick="quickMatch()">
+                        ⚡ Quick Match
+                    </button>
+                    <button class="btn btn-secondary" onclick="createRoom()">
+                        🏠 Create Room
+                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" class="input" id="roomCodeInput" 
+                               placeholder="ABCD12" maxlength="6" style="flex: 1;">
+                        <button class="btn" onclick="joinRoom()" style="min-width: 80px;">
+                            🚪 Join
+                        </button>
+                    </div>
+                    <button class="btn btn-danger" onclick="leaveRoom()" id="leaveRoomBtn" disabled>
+                        🚪 Leave Room
+                    </button>
+                </div>
+                
+                <!-- Current Room -->
+                <div id="currentRoomDisplay" style="display: none;">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Current Room:</h3>
+                    <div class="room-code" id="currentRoomCode">ABC123</div>
+                    <button class="copy-btn" onclick="copyRoomCode()">📋 Copy Code</button>
+                    <p style="text-align: center; margin-top: 1rem; opacity: 0.8; font-size: 0.9rem;">
+                        Share this code with friends!
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="log" id="activityLog"></div>
+    </div>
+
+    <!-- Custom Multiplayer Script -->
+    <script src="multiplayer-custom.js"></script>
+    
+    <script>
+        // UI Integration
+        let multiplayer = null;
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🎮 Epic Card Battle Loading...', 'info');
+            
+            // Wait for custom multiplayer to load
+            setTimeout(() => {
+                if (window.customMultiplayer) {
+                    multiplayer = window.customMultiplayer;
+                    setupUI();
+                    addLog('✅ Custom multiplayer system ready!', 'success');
+                } else {
+                    addLog('❌ Failed to load custom multiplayer', 'error');
+                }
+            }, 500);
+        });
+        
+        function setupUI() {
+            // Update initial info
+            updateGameInfo({
+                playerId: multiplayer.playerId,
+                room: null,
+                opponent: null,
+                turn: 'Menu',
+                state: 'menu'
+            });
+            
+            // Update connection status
+            updateConnectionStatus({
+                localStorage: true,
+                webrtc: false,
+                firebase: false
+            });
+        }
+        
+        // Global UI Functions
+        function updateGameInfo(info) {
+            document.getElementById('playerId').textContent = info.playerId || '-';
+            document.getElementById('gameRoom').textContent = info.room || '-';
+            document.getElementById('opponentInfo').textContent = 
+                info.opponent ? info.opponent.name : 'None';
+            document.getElementById('turnInfo').textContent = info.turn || '-';
+            
+            // Show/hide room display
+            const roomDisplay = document.getElementById('currentRoomDisplay');
+            const leaveBtn = document.getElementById('leaveRoomBtn');
+            
+            if (info.room) {
+                roomDisplay.style.display = 'block';
+                document.getElementById('currentRoomCode').textContent = info.room;
+                leaveBtn.disabled = false;
+            } else {
+                roomDisplay.style.display = 'none';
+                leaveBtn.disabled = true;
+            }
+        }
+        
+        function updateConnectionStatus(status) {
+            document.getElementById('localStatus').className = 
+                'method-status ' + (status.localStorage ? 'success' : '');
+            document.getElementById('webrtcStatus').className = 
+                'method-status ' + (status.webrtc ? 'success' : '');
+            document.getElementById('firebaseStatus').className = 
+                'method-status ' + (status.firebase ? 'success' : '');
+        }
+        
+        function addLog(message, type = 'info') {
+            const logEl = document.getElementById('activityLog');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (logEl.children.length > 50) {
+                logEl.removeChild(logEl.firstChild);
+            }
+        }
+        
+        // Game Actions
+        function quickMatch() {
+            if (!multiplayer) return;
+            addLog('⚡ Starting quick match...', 'info');
+            multiplayer.findQuickMatch();
+        }
+        
+        function createRoom() {
+            if (!multiplayer) return;
+            const roomCode = multiplayer.createRoom();
+            addLog(`🏠 Room created: ${roomCode}`, 'success');
+        }
+        
+        function joinRoom() {
+            if (!multiplayer) return;
+            const roomCode = document.getElementById('roomCodeInput').value.trim();
+            
+            if (!roomCode) {
+                addLog('❌ Please enter a room code!', 'error');
+                return;
+            }
+            
+            multiplayer.joinRoom(roomCode.toUpperCase());
+        }
+        
+        function leaveRoom() {
+            if (!multiplayer) return;
+            multiplayer.leaveRoom();
+            addLog('🚪 Left the room', 'info');
+        }
+        
+        function copyRoomCode() {
+            const roomCode = document.getElementById('currentRoomCode').textContent;
+            navigator.clipboard.writeText(roomCode).then(() => {
+                addLog('📋 Room code copied to clipboard!', 'success');
+            });
+        }
+        
+        function testGameActions() {
+            if (!multiplayer) return;
+            
+            addLog('🧪 Testing game actions...', 'info');
+            
+            // Simulate card play
+            setTimeout(() => {
+                multiplayer.playCard({ card: 'Test Card', value: 5 });
+                addLog('🃏 Played test card', 'info');
+            }, 1000);
+            
+            // Simulate turn end
+            setTimeout(() => {
+                multiplayer.endTurn();
+                addLog('⏰ Ended turn', 'info');
+            }, 2000);
+        }
+        
+        // Handle room code input
+        document.getElementById('roomCodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+        
+        // Auto-uppercase room code input
+        document.getElementById('roomCodeInput').addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase();
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (multiplayer) {
+                multiplayer.destroy();
+            }
+        });
+        
+        // Demo mode - create some fake activity
+        setTimeout(() => {
+            addLog('🌟 Welcome to Epic Card Battle!', 'success');
+            addLog('💡 Tips: Create a room and share the code with friends', 'info');
+            addLog('🔧 System uses LocalStorage + WebRTC for connections', 'info');
+        }, 1000);
+    </script>
+</body>
+</html>

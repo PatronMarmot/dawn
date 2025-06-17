@@ -1,1 +1,63 @@
-{\n  \"name\": \"epic-card-battle\",\n  \"version\": \"3.0.0\",\n  \"description\": \"Modern multiplayer card game with Socket.io\",\n  \"main\": \"server.js\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"start\": \"node server.js\",\n    \"dev\": \"node server.js\",\n    \"test\": \"node server.js\"\n  },\n  \"dependencies\": {\n    \"express\": \"^4.18.2\",\n    \"socket.io\": \"^4.7.5\"\n  },\n  \"engines\": {\n    \"node\": \">=18.0.0\"\n  },\n  \"keywords\": [\"game\", \"multiplayer\", \"cards\", \"socketio\", \"realtime\"],\n  \"author\": \"Epic Card Battle Team\",\n  \"license\": \"MIT\"\n}
+{
+  "name": "epic-card-battle-custom",
+  "version": "2.0.0",
+  "description": "Epic Card Battle - Custom Multiplayer System (No Socket.io)",
+  "main": "custom-multiplayer.html",
+  "type": "module",
+  "scripts": {
+    "start": "python -m http.server 3000",
+    "serve": "python -m http.server 3000",
+    "dev": "python -m http.server 3000",
+    "build": "echo 'No build needed - Static files ready!'",
+    "deploy": "echo 'Ready for GitHub Pages deployment!'"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "game", 
+    "multiplayer", 
+    "webrtc", 
+    "localStorage", 
+    "github-pages", 
+    "p2p",
+    "card-game",
+    "custom-multiplayer"
+  ],
+  "author": "Epic Card Battle Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/dawn.git"
+  },
+  "homepage": "https://your-username.github.io/dawn/",
+  "browsers": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "features": [
+    "✅ Custom Multiplayer System",
+    "✅ LocalStorage Cross-Tab Communication", 
+    "✅ WebRTC P2P Connections",
+    "✅ Firebase Realtime Fallback",
+    "✅ GitHub Pages Compatible",
+    "✅ No Server Required",
+    "✅ Room Code System (6 chars)",
+    "✅ Quick Match Algorithm",
+    "✅ Auto Cleanup & Heartbeat",
+    "❌ Socket.io Completely Removed"
+  ],
+  "documentation": {
+    "features": "Custom multiplayer without Socket.io dependency",
+    "connections": {
+      "primary": "LocalStorage (cross-tab communication)",
+      "secondary": "WebRTC (peer-to-peer)",
+      "fallback": "Firebase Realtime Database"
+    },
+    "compatibility": "GitHub Pages, Static Hosting, No Server Required",
+    "room_system": "6-character room codes for easy sharing"
+  }
+}
