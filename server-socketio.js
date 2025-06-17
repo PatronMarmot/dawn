@@ -15,13 +15,13 @@ const server = createServer(app);
 // AGGRESSIVE CORS configuration - GitHub Pages support
 app.use(cors({
     origin: [
-        "http://localhost:8080", 
-        "http://127.0.0.1:8080", 
-        "http://localhost:3000",
-        "https://enesefeoglu.github.io",  // GitHub Pages URL
-        "https://*.github.io",           // Any GitHub Pages
-        "https://dawn-fi92.onrender.com", // Self-reference
-        "*"  // Allow all for development
+    "http://localhost:8080", 
+    "http://127.0.0.1:8080", 
+    "http://localhost:3000",
+    "https://enesefeoglu.github.io",    // GitHub Pages
+    "https://yourdomain.com",          // ÖZEL DOMAINİNİZ BURAYA
+    "https://dawn-fi92.onrender.com",   // Self-reference
+    "*"  // Allow all for development
     ],
     methods: ["GET", "POST", "OPTIONS"],
     credentials: true,
@@ -34,9 +34,9 @@ const io = new Server(server, {
             "http://localhost:8080", 
             "http://127.0.0.1:8080", 
             "http://localhost:3000",
-            "https://enesefeoglu.github.io",  // GitHub Pages
-            "https://*.github.io",           // Any GitHub Pages
-            "https://dawn-fi92.onrender.com", // Self-reference
+            "https://enesefeoglu.github.io",    // GitHub Pages
+            "https://yourdomain.com",          // ÖZEL DOMAINİNİZ BURAYA
+            "https://dawn-fi92.onrender.com",   // Self-reference
             "*"  // Allow all for development
         ],
         methods: ["GET", "POST", "OPTIONS"],
@@ -77,9 +77,11 @@ app.options('*', (req, res) => {
     res.sendStatus(200);
 });
 
-// Game state
+// Game state - LOBI DESTEKLI
 const games = new Map();
 const connectedPlayers = new Map();
+const lobbyList = new Map(); // gameId -> lobby info
+const quickMatchQueue = new Set(); // Hızlı eşleşme kuyuğu
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -105,6 +107,9 @@ io.on('connection', (socket) => {
         });
         
         console.log('👤 Player registered:', player.name);
+        
+        // Online oyuncu listesini tüm oyunculara gönder
+        broadcastPlayersList();
     });
 
     // Create game room
@@ -149,6 +154,9 @@ io.on('connection', (socket) => {
         });
 
         console.log('🏠 Game created:', gameId, 'by', player.name);
+        
+        // Lobi listesine ekle
+        addToLobbyList(game, player);
     });
 
     // Join game room
@@ -407,6 +415,191 @@ io.on('connection', (socket) => {
     socket.on('error', (error) => {
         console.error('🚫 Socket error:', error);
     });
+    
+    // 🏠 LOBI SISTEM EVENT'LERİ
+    
+    // Hızlı eşleşme
+    socket.on('find_quick_match', (data) => {
+        const player = connectedPlayers.get(socket.id);
+        if (!player) return;
+        
+        console.log('⚡ Quick match request from:', player.name);
+        
+        // Kuyrukta başka oyuncu var mı?
+        if (quickMatchQueue.size > 0) {
+            // Eşleştir
+            const waitingPlayerId = Array.from(quickMatchQueue)[0];
+            const waitingPlayer = connectedPlayers.get(waitingPlayerId);
+            
+            if (waitingPlayer && waitingPlayer.socket) {
+                quickMatchQueue.delete(waitingPlayerId);
+                
+                // Otomatik oyun oluştur
+                const gameId = generateGameId();
+                const game = {
+                    id: gameId,
+                    host: waitingPlayerId,
+                    players: [waitingPlayer, player],
+                    status: 'playing',
+                    createdAt: Date.now(),
+                    gameState: {
+                        currentPlayer: waitingPlayerId,
+                        turn: 1
+                    }
+                };
+                
+                games.set(gameId, game);
+                player.gameId = gameId;
+                waitingPlayer.gameId = gameId;
+                
+                // Her iki oyuncuyu odalara ekle
+                socket.join(gameId);
+                waitingPlayer.socket.join(gameId);
+                
+                // Oyun başlangıcı mesajları
+                io.to(gameId).emit('quick_match_found', {
+                    gameId: gameId,
+                    players: [
+                        { id: waitingPlayer.id, name: waitingPlayer.name, isHost: true },
+                        { id: player.id, name: player.name, isHost: false }
+                    ],
+                    message: 'Quick match found! Game starting...'
+                });
+                
+                // Otomatik oyun başlat
+                setTimeout(() => {
+                    io.to(gameId).emit('game_started', {
+                        gameId: gameId,
+                        firstPlayer: waitingPlayerId,
+                        players: [waitingPlayer.id, player.id],
+                        message: 'Quick match game started!'
+                    });
+                }, 1000);
+                
+                console.log('⚡ Quick match created:', gameId, waitingPlayer.name, 'vs', player.name);
+                
+            } else {
+                // Geçersiz oyuncu, kuyruğa ekle
+                quickMatchQueue.delete(waitingPlayerId);
+                quickMatchQueue.add(socket.id);
+                
+                socket.emit('quick_match_searching', {
+                    message: 'Searching for opponent...',
+                    queuePosition: quickMatchQueue.size
+                });
+            }
+        } else {
+            // Kuyruğa ekle
+            quickMatchQueue.add(socket.id);
+            
+            socket.emit('quick_match_searching', {
+                message: 'Searching for opponent...',
+                queuePosition: quickMatchQueue.size
+            });
+            
+            console.log('⚡ Player added to quick match queue:', player.name);
+        }
+    });
+    
+    // Lobi listesi iste
+    socket.on('get_lobby_list', (data) => {
+        const lobbies = Array.from(lobbyList.values()).filter(lobby => 
+            lobby.status === 'waiting' && lobby.players < lobby.maxPlayers
+        );
+        
+        socket.emit('lobby_list', {
+            lobbies: lobbies,
+            total: lobbies.length
+        });
+        
+        console.log('📋 Lobby list sent to:', connectedPlayers.get(socket.id)?.name, '- Count:', lobbies.length);
+    });
+    
+    // Oyuncu davet et
+    socket.on('challenge_player', (data) => {
+        const challenger = connectedPlayers.get(socket.id);
+        const target = connectedPlayers.get(data.targetId);
+        
+        if (challenger && target && target.socket) {
+            target.socket.emit('player_challenge', {
+                challengerId: challenger.id,
+                challengerName: challenger.name,
+                message: `${challenger.name} sizi düelloya davet ediyor!`
+            });
+            
+            socket.emit('challenge_sent', {
+                targetName: target.name,
+                message: `${target.name} oyuncusuna davet gönderildi!`
+            });
+            
+            console.log('⚔️ Challenge sent:', challenger.name, '->', target.name);
+        }
+    });
+    
+    // Daveti kabul et
+    socket.on('accept_challenge', (data) => {
+        const accepter = connectedPlayers.get(socket.id);
+        const challenger = connectedPlayers.get(data.challengerId);
+        
+        if (accepter && challenger && challenger.socket) {
+            // Otomatik oyun oluştur
+            const gameId = generateGameId();
+            const game = {
+                id: gameId,
+                host: challenger.id,
+                players: [challenger, accepter],
+                status: 'playing',
+                createdAt: Date.now(),
+                gameState: {
+                    currentPlayer: challenger.id,
+                    turn: 1
+                }
+            };
+            
+            games.set(gameId, game);
+            challenger.gameId = gameId;
+            accepter.gameId = gameId;
+            
+            // Odalara ekle
+            socket.join(gameId);
+            challenger.socket.join(gameId);
+            
+            // Oyun başlat
+            io.to(gameId).emit('challenge_accepted', {
+                gameId: gameId,
+                players: [
+                    { id: challenger.id, name: challenger.name, isHost: true },
+                    { id: accepter.id, name: accepter.name, isHost: false }
+                ]
+            });
+            
+            setTimeout(() => {
+                io.to(gameId).emit('game_started', {
+                    gameId: gameId,
+                    firstPlayer: challenger.id,
+                    players: [challenger.id, accepter.id],
+                    message: 'Challenge game started!'
+                });
+            }, 1000);
+            
+            console.log('⚔️ Challenge accepted:', challenger.name, 'vs', accepter.name);
+        }
+    });
+    
+    // Daveti reddet
+    socket.on('decline_challenge', (data) => {
+        const decliner = connectedPlayers.get(socket.id);
+        const challenger = connectedPlayers.get(data.challengerId);
+        
+        if (decliner && challenger && challenger.socket) {
+            challenger.socket.emit('challenge_declined', {
+                declinerName: decliner.name,
+                message: `${decliner.name} daveti reddetti.`
+            });
+            
+            console.log('❌ Challenge declined:', challenger.name, '<-', decliner.name);
+        }
+    });
 });
 
 // Helper functions
@@ -417,6 +610,93 @@ function generateGameId() {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
+}
+
+// 🏠 LOBI SISTEM HELPER FONKSIYONLARI
+
+// Online oyuncuları yayınla
+function broadcastPlayersList() {
+    const players = Array.from(connectedPlayers.values()).map(player => ({
+        id: player.id,
+        name: player.name,
+        status: player.gameId ? 'Oyunda' : 'Menüde',
+        gameId: player.gameId || null
+    }));
+    
+    io.emit('players_list', {
+        players: players,
+        count: players.length
+    });
+    
+    console.log('👥 Players list broadcasted:', players.length, 'online');
+}
+
+// Lobi listesine ekle
+function addToLobbyList(game, host) {
+    const lobbyInfo = {
+        gameId: game.id,
+        hostId: host.id,
+        hostName: host.name,
+        players: game.players.length,
+        maxPlayers: 2,
+        status: game.status,
+        gameMode: 'Standard',
+        createdAt: game.createdAt,
+        waitTime: '0m'
+    };
+    
+    lobbyList.set(game.id, lobbyInfo);
+    
+    // Tüm oyunculara güncel lobi listesini gönder
+    broadcastLobbyList();
+    
+    console.log('🏠 Lobby added:', game.id, 'by', host.name);
+}
+
+// Lobi listesinden kaldır
+function removeFromLobbyList(gameId) {
+    if (lobbyList.has(gameId)) {
+        lobbyList.delete(gameId);
+        broadcastLobbyList();
+        console.log('🗑️ Lobby removed:', gameId);
+    }
+}
+
+// Lobi listesini yayınla
+function broadcastLobbyList() {
+    const lobbies = Array.from(lobbyList.values()).filter(lobby => 
+        lobby.status === 'waiting' && lobby.players < lobby.maxPlayers
+    );
+    
+    // Bekleme süresini güncelle
+    lobbies.forEach(lobby => {
+        const waitMinutes = Math.floor((Date.now() - lobby.createdAt) / 60000);
+        lobby.waitTime = waitMinutes + 'm';
+    });
+    
+    io.emit('lobby_list', {
+        lobbies: lobbies,
+        total: lobbies.length
+    });
+}
+
+// Lobi durumunu güncelle
+function updateLobbyStatus(gameId, newStatus, playerCount = null) {
+    if (lobbyList.has(gameId)) {
+        const lobby = lobbyList.get(gameId);
+        lobby.status = newStatus;
+        
+        if (playerCount !== null) {
+            lobby.players = playerCount;
+        }
+        
+        // Eğer oyun başladıysa lobi listesinden kaldır
+        if (newStatus === 'playing' || newStatus === 'finished') {
+            removeFromLobbyList(gameId);
+        } else {
+            broadcastLobbyList();
+        }
+    }
 }
 
 // Periodic cleanup of old games

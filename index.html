@@ -302,11 +302,25 @@
                             <span id="connectionStatus">🔄 Bağlantı kontrol ediliyor...</span>
                         </div>
                         <br>
-                        <button class="menu-btn primary-btn" onclick="connectAndCreateGame()" id="createGameBtn" disabled>
-                            <span class="btn-icon">🏠</span>OYUN OLUŞTUR
+                        
+                        <!-- Hızlı Oyun -->
+                        <button class="menu-btn primary-btn" onclick="quickMatchmaking()" id="quickPlayBtn" disabled>
+                            <span class="btn-icon">⚡</span>HIZLI OYUN
                         </button>
+                        
+                        <!-- Lobi Listesi -->
+                        <button class="menu-btn secondary-btn" onclick="showLobbyList()" id="lobbyListBtn" disabled>
+                            <span class="btn-icon">📋</span>LOBİ LİSTESİ
+                        </button>
+                        
+                        <!-- Özel Oda -->
+                        <button class="menu-btn secondary-btn" onclick="connectAndCreateGame()" id="createGameBtn" disabled>
+                            <span class="btn-icon">🏠</span>ÖZEL ODA OLUŞTUR
+                        </button>
+                        
+                        <!-- Katılma Bölümü -->
                         <div class="join-section">
-                            <input type="text" id="gameIdInput" placeholder="Oyun ID girin... (örn: ABC123)" maxlength="10" style="
+                            <input type="text" id="gameIdInput" placeholder="Oda ID girin... (örn: ABC123)" maxlength="10" style="
                                 width: 100%;
                                 padding: 1rem;
                                 margin: 1rem 0;
@@ -319,19 +333,25 @@
                                 text-transform: uppercase;
                             ">
                             <button class="menu-btn secondary-btn" onclick="connectAndJoinGame()" id="joinGameBtn" disabled>
-                                <span class="btn-icon">🚪</span>OYUNA KATIL
+                                <span class="btn-icon">🚪</span>ODAYA KATIL
                             </button>
                         </div>
+                        
                         <hr style="margin: 2rem 0; border: 1px solid rgba(255,255,255,0.2);">
-                        <div class="multiplayer-info">
-                            <h4>📋 Test Adımları:</h4>
-                            <ul style="text-align: left; padding-left: 1rem;">
-                                <li>🔧 <strong>Server çalıyor mu?</strong> START-MULTIPLAYER.bat</li>
-                                <li>🌐 <strong>İkinci tab aç:</strong> http://localhost:8080</li>
-                                <li>🏠 <strong>Tab 1:</strong> OYUN OLUŞTUR</li>
-                                <li>🚪 <strong>Tab 2:</strong> ID ile OYUNA KATIL</li>
-                            </ul>
+                        
+                        <!-- Online Oyuncular -->
+                        <div class="online-players">
+                            <h4>👥 Online Oyuncular (<span id="onlineCount">0</span>)</h4>
+                            <div id="playersList" style="
+                                max-height: 150px;
+                                overflow-y: auto;
+                                background: rgba(0,0,0,0.3);
+                                border-radius: 8px;
+                                padding: 10px;
+                                margin: 10px 0;
+                            "></div>
                         </div>
+                        
                         <div class="debug-info" style="margin-top: 1rem; font-size: 0.9rem; color: #888;">
                             Socket.io: <span id="debugSocketIOStatus">❌</span> | 
                             Server: <span id="debugServerStatus">❌</span> | 
@@ -447,6 +467,204 @@
             } catch (error) {
                 console.error('❌ Oyun oluşturma hatası:', error);
                 alert('❌ Server bağlantı hatası: ' + error.message);
+            }
+        }
+        
+        // LOBI SISTEM FONKSIYONLARI
+        
+        // Hızlı eşleşme
+        async function quickMatchmaking() {
+            console.log('⚡ Hızlı eşleşme başlatıldı');
+            
+            try {
+                if (!multiplayer.connected) {
+                    await multiplayer.connect();
+                }
+                
+                if (multiplayer.connected) {
+                    addLog('⚡ Hızlı eşleşme başlatılıyor...', 'info');
+                    multiplayer.findQuickMatch();
+                } else {
+                    alert('❌ Server bağlantısı kurulamadı!');
+                    return;
+                }
+                
+                document.querySelector('.modal').remove();
+                hideMainMenu();
+                initGame();
+                
+            } catch (error) {
+                console.error('❌ Hızlı eşleşme hatası:', error);
+                alert('❌ Hızlı eşleşme hatası: ' + error.message);
+            }
+        }
+        
+        // Lobi listesi göster
+        async function showLobbyList() {
+            console.log('📋 Lobi listesi açılıyor');
+            
+            try {
+                if (!multiplayer.connected) {
+                    await multiplayer.connect();
+                }
+                
+                if (multiplayer.connected) {
+                    multiplayer.requestLobbyList();
+                } else {
+                    alert('❌ Server bağlantısı kurulamadı!');
+                }
+                
+            } catch (error) {
+                console.error('❌ Lobi listesi hatası:', error);
+                alert('❌ Lobi listesi hatası: ' + error.message);
+            }
+        }
+        
+        // Online oyuncu listesini güncelle
+        function updatePlayersList(players) {
+            const playersList = document.getElementById('playersList');
+            const onlineCount = document.getElementById('onlineCount');
+            
+            if (!playersList || !onlineCount) return;
+            
+            onlineCount.textContent = players.length;
+            
+            if (players.length === 0) {
+                playersList.innerHTML = '<p style="color: #888; text-align: center;">Henüz online oyuncu yok</p>';
+                return;
+            }
+            
+            playersList.innerHTML = players.map(player => `
+                <div class="player-item" style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px;
+                    margin: 4px 0;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 6px;
+                    border-left: 3px solid #6366f1;
+                ">
+                    <span>
+                        <span style="color: #10b981;">●</span> 
+                        ${player.name}
+                        ${player.id === multiplayer.playerId ? ' (Siz)' : ''}
+                    </span>
+                    <span style="font-size: 0.8rem; color: #888;">
+                        ${player.status || 'Menüde'}
+                    </span>
+                    ${player.id !== multiplayer.playerId ? `
+                        <button onclick="challengePlayer('${player.id}', '${player.name}')" 
+                                style="
+                                    background: #6366f1;
+                                    color: white;
+                                    border: none;
+                                    padding: 4px 8px;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                    font-size: 0.8rem;
+                                ">
+                            ⚔️ Davet Et
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        // Oyuncu davet et
+        function challengePlayer(playerId, playerName) {
+            console.log('⚔️ Oyuncu daveti:', playerName);
+            
+            if (multiplayer.connected && multiplayer.socket) {
+                multiplayer.socket.emit('challenge_player', {
+                    targetId: playerId,
+                    targetName: playerName,
+                    challengerName: multiplayer.playerName
+                });
+                
+                addLog(`⚔️ ${playerName} oyuncusuna davet gönderildi!`, 'info');
+            }
+        }
+        
+        // Lobi listesi modal göster
+        function showLobbyListModal(lobbies) {
+            // Mevcut modalları kapat
+            document.querySelectorAll('.modal').forEach(modal => modal.remove());
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px; width: 90%;">
+                    <span class="close-btn" onclick="this.parentElement.parentElement.remove()">&times;</span>
+                    <h2>📋 Açık Lobi Odaları</h2>
+                    <div class="lobby-list">
+                        ${lobbies.length === 0 ? 
+                            '<p style="text-align: center; color: #888; padding: 2rem;">Henüz açık oda yok. İlk odayı siz oluşturun!</p>' :
+                            lobbies.map(lobby => `
+                                <div class="lobby-item" style="
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                    padding: 15px;
+                                    margin: 10px 0;
+                                    background: rgba(255,255,255,0.1);
+                                    border-radius: 10px;
+                                    border-left: 4px solid #6366f1;
+                                ">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: bold; font-size: 1.1rem;">
+                                            🏠 Oda: ${lobby.gameId}
+                                        </div>
+                                        <div style="color: #888; font-size: 0.9rem; margin-top: 4px;">
+                                            👤 Host: ${lobby.hostName} | 
+                                            👥 ${lobby.players}/${lobby.maxPlayers} oyuncu | 
+                                            ⏱️ ${lobby.waitTime || '0m'}
+                                        </div>
+                                        ${lobby.gameMode ? `<div style="color: #10b981; font-size: 0.8rem;">🎮 ${lobby.gameMode}</div>` : ''}
+                                    </div>
+                                    <button onclick="joinLobbyRoom('${lobby.gameId}')" 
+                                            style="
+                                                background: #10b981;
+                                                color: white;
+                                                border: none;
+                                                padding: 10px 20px;
+                                                border-radius: 8px;
+                                                cursor: pointer;
+                                                font-weight: bold;
+                                            "
+                                            ${lobby.players >= lobby.maxPlayers ? 'disabled' : ''}>
+                                        ${lobby.players >= lobby.maxPlayers ? '🔒 Dolu' : '🚪 Katıl'}
+                                    </button>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                    <hr style="margin: 1.5rem 0; border: 1px solid rgba(255,255,255,0.2);">
+                    <div style="text-align: center;">
+                        <button onclick="this.parentElement.parentElement.remove(); showMultiplayerMenu();" class="menu-btn secondary-btn">
+                            🔙 Geri Dön
+                        </button>
+                        <button onclick="this.parentElement.parentElement.remove(); connectAndCreateGame();" class="menu-btn primary-btn">
+                            ➕ Yeni Oda Oluştur
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // Lobiye katıl
+        function joinLobbyRoom(gameId) {
+            console.log('🚪 Lobiye katılınıyor:', gameId);
+            
+            if (multiplayer.connected) {
+                multiplayer.joinGame(gameId);
+                document.querySelector('.modal').remove();
+                hideMainMenu();
+                initGame();
+            } else {
+                alert('❌ Server bağlantısı yok!');
             }
         }
         

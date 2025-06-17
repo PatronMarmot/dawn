@@ -45,11 +45,11 @@ class MultiplayerManager {
             return false;
         }
 
+        // ✅ GÜNCEL SERVER URL'LERİ - Özel Domain
         const servers = [
-            'https://dawn-fi92.onrender.com',        // ✅ GÜNCEL Render server URL
-            'http://localhost:8080',                  // Local development
-            'http://127.0.0.1:8080',                  // Local fallback  
-            'https://epic-card-battle.vercel.app'     // Vercel backup (opsiyonel)
+            'https://dawn-fi92.onrender.com',         // Ana Render server
+            'https://your-domain.com',                // Özel domain'iniz (güncelleyin)
+            'https://epic-card-battle.vercel.app'     // Vercel backup
         ];
 
         for (const serverUrl of servers) {
@@ -156,6 +156,16 @@ class MultiplayerManager {
         this.socket.on('game_ended', (data) => this.onGameEnded(data));
         this.socket.on('player_disconnected', (data) => this.onPlayerDisconnected(data));
         this.socket.on('error', (data) => this.onError(data));
+        
+        // 🏠 LOBI SISTEM EVENTS
+        this.socket.on('players_list', (data) => this.onPlayersListUpdate(data));
+        this.socket.on('lobby_list', (data) => this.onLobbyListUpdate(data));
+        this.socket.on('quick_match_searching', (data) => this.onQuickMatchSearching(data));
+        this.socket.on('quick_match_found', (data) => this.onQuickMatchFound(data));
+        this.socket.on('player_challenge', (data) => this.onPlayerChallenge(data));
+        this.socket.on('challenge_sent', (data) => this.onChallengeSent(data));
+        this.socket.on('challenge_accepted', (data) => this.onChallengeAccepted(data));
+        this.socket.on('challenge_declined', (data) => this.onChallengeDeclined(data));
 
         // Connection health check
         this.socket.on('pong', () => {
@@ -231,6 +241,48 @@ class MultiplayerManager {
                 }
             }
         });
+    }
+
+    // Hızlı eşleşme fonksiyonu - YENİ
+    findQuickMatch() {
+        if (!this.connected) {
+            addLog('❌ Multiplayer sistemi henüz hazır değil!', 'error');
+            return;
+        }
+
+        addLog('⚡ Hızlı eşleşme başlatılıyor...', 'info');
+        
+        if (this.socket && this.socket.connected) {
+            // Socket.io mode
+            this.socket.emit('find_quick_match', {
+                playerName: this.playerName,
+                playerId: this.playerId
+            });
+        } else {
+            // Local mode - otomatik oda oluştur
+            addLog('🏠 Local mode: Otomatik oda oluşturuluyor...', 'info');
+            this.createGame();
+        }
+    }
+
+    // Lobi listesi iste - YENİ
+    requestLobbyList() {
+        if (!this.connected) {
+            addLog('❌ Multiplayer sistemi henüz hazır değil!', 'error');
+            return;
+        }
+
+        addLog('📋 Lobi listesi isteniyor...', 'info');
+        
+        if (this.socket && this.socket.connected) {
+            this.socket.emit('get_lobby_list', {
+                playerId: this.playerId
+            });
+        } else {
+            // Local mode - boş liste göster
+            if (typeof showLobbyListModal === 'function') {
+                showLobbyListModal([]);
+            }
     }
 
     // Oyun odası oluştur - DÜZELTİLDİ
@@ -534,6 +586,173 @@ class MultiplayerManager {
     onError(message) {
         addLog(`❌ Hata: ${message.message}`, 'error');
         console.error('Multiplayer error:', message);
+    }
+
+    // 🏠 LOBI SISTEM EVENT HANDLERS
+    
+    onPlayersListUpdate(data) {
+        console.log('👥 Players list updated:', data.count, 'online');
+        
+        // Online oyuncu listesini güncelle
+        if (typeof updatePlayersList === 'function') {
+            updatePlayersList(data.players);
+        }
+    }
+    
+    onLobbyListUpdate(data) {
+        console.log('📋 Lobby list updated:', data.total, 'lobbies');
+        
+        // Lobi listesi modalını güncelle
+        if (typeof showLobbyListModal === 'function') {
+            showLobbyListModal(data.lobbies);
+        }
+    }
+    
+    onQuickMatchSearching(data) {
+        addLog('⚡ Rakip aranıyor... Kuyruk pozisyonu: ' + data.queuePosition, 'info');
+        
+        // Bekleme modalı göster
+        this.showQuickMatchWaiting(data);
+    }
+    
+    onQuickMatchFound(data) {
+        addLog('✅ Rakip bulundu! Oyun başlatılıyor...', 'win');
+        
+        this.closeWaitingRoom();
+        
+        // Rakip bilgisini ayarla
+        const opponent = data.players.find(p => p.id !== this.playerId);
+        if (opponent) {
+            this.opponent = {
+                id: opponent.id,
+                name: opponent.name
+            };
+        }
+        
+        addLog(`⚡ Hızlı eşleşme: ${this.opponent?.name || 'Rakip'} ile oyun başlıyor!`, 'win');
+    }
+    
+    onPlayerChallenge(data) {
+        // Davet popup'u göster
+        this.showChallengePopup(data);
+        addLog(`⚔️ ${data.challengerName} sizi düelloya davet etti!`, 'info');
+    }
+    
+    onChallengeSent(data) {
+        addLog(`⚔️ ${data.targetName} oyuncusuna davet gönderildi!`, 'info');
+    }
+    
+    onChallengeAccepted(data) {
+        addLog('✅ Davet kabul edildi! Oyun başlıyor...', 'win');
+        
+        // Oyunu başlat
+        const opponent = data.players.find(p => p.id !== this.playerId);
+        if (opponent) {
+            this.opponent = {
+                id: opponent.id,
+                name: opponent.name
+            };
+        }
+    }
+    
+    onChallengeDeclined(data) {
+        addLog(`❌ ${data.declinerName} daveti reddetti.`, 'error');
+    }
+    
+    // Hızlı eşleşme bekleme modalı
+    showQuickMatchWaiting(data) {
+        this.closeWaitingRoom();
+        
+        const modal = document.createElement('div');
+        modal.id = 'quickMatchWaiting';
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h2>⚡ Hızlı Eşleşme</h2>
+                <div class="waiting-content">
+                    <div class="waiting-spinner">
+                        <div class="spinner"></div>
+                        <p>Rakip aranıyor...</p>
+                        <p><small>Kuyruk pozisyonu: ${data.queuePosition}</small></p>
+                        <p><small>Ortalama bekleme süresi: 30 saniye</small></p>
+                    </div>
+                </div>
+                <button onclick="multiplayer.cancelQuickMatch()" class="menu-btn secondary-btn">❌ İptal Et</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Davet popup'ı
+    showChallengePopup(data) {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h2>⚔️ Düello Daveti</h2>
+                <div class="challenge-content">
+                    <p><strong>${data.challengerName}</strong> sizi düelloya davet ediyor!</p>
+                    <p>Bu daveti kabul ediyor musunuz?</p>
+                </div>
+                <div class="challenge-buttons">
+                    <button onclick="multiplayer.acceptChallenge('${data.challengerId}'); this.parentElement.parentElement.parentElement.remove();" class="menu-btn primary-btn">
+                        ✅ Kabul Et
+                    </button>
+                    <button onclick="multiplayer.declineChallenge('${data.challengerId}'); this.parentElement.parentElement.parentElement.remove();" class="menu-btn secondary-btn">
+                        ❌ Reddet
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // 30 saniye sonra otomatik kapat
+        setTimeout(() => {
+            if (document.body.contains(modal)) {
+                this.declineChallenge(data.challengerId);
+                modal.remove();
+            }
+        }, 30000);
+    }
+    
+    // Hızlı eşleşme iptal
+    cancelQuickMatch() {
+        if (this.socket && this.socket.connected) {
+            this.socket.emit('cancel_quick_match', {
+                playerId: this.playerId
+            });
+        }
+        
+        this.closeWaitingRoom();
+        addLog('❌ Hızlı eşleşme iptal edildi', 'info');
+    }
+    
+    // Daveti kabul et
+    acceptChallenge(challengerId) {
+        if (this.socket && this.socket.connected) {
+            this.socket.emit('accept_challenge', {
+                challengerId: challengerId
+            });
+        }
+        
+        addLog('✅ Davet kabul edildi!', 'win');
+        hideMainMenu();
+        initGame();
+    }
+    
+    // Daveti reddet
+    declineChallenge(challengerId) {
+        if (this.socket && this.socket.connected) {
+            this.socket.emit('decline_challenge', {
+                challengerId: challengerId
+            });
+        }
+        
+        addLog('❌ Davet reddedildi', 'info');
     }
 
     // UI Fonksiyonları - DÜZELTİLDİ
