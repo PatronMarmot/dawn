@@ -12,38 +12,24 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = createServer(app);
 
-// AGGRESSIVE CORS configuration - GitHub Pages support
+// ULTRA AGGRESSIVE CORS - TÜM DOMAINLER
 app.use(cors({
-    origin: [
-    "http://localhost:8080", 
-    "http://127.0.0.1:8080", 
-    "http://localhost:3000",
-    "https://enesefeoglu.github.io",    // GitHub Pages
-    "https://yourdomain.com",          // ÖZEL DOMAINİNİZ BURAYA
-    "https://dawn-fi92.onrender.com",   // Self-reference
-    "*"  // Allow all for development
-    ],
-    methods: ["GET", "POST", "OPTIONS"],
-    credentials: true,
-    allowedHeaders: ["*"]
+origin: true, // Tüm origin'lere izin ver
+methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+credentials: false, // Credentials kapat
+allowedHeaders: "*",
+preflightContinue: false,
+optionsSuccessStatus: 200
 }));
 
 const io = new Server(server, {
     cors: {
-        origin: [
-            "http://localhost:8080", 
-            "http://127.0.0.1:8080", 
-            "http://localhost:3000",
-            "https://enesefeoglu.github.io",    // GitHub Pages
-            "https://yourdomain.com",          // ÖZEL DOMAINİNİZ BURAYA
-            "https://dawn-fi92.onrender.com",   // Self-reference
-            "*"  // Allow all for development
-        ],
+        origin: true, // Tüm origin'lere izin ver
         methods: ["GET", "POST", "OPTIONS"],
-        credentials: true,
-        allowedHeaders: ["*"]
+        credentials: false, // Credentials kapat
+        allowedHeaders: "*"
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     allowEIO3: true,
     pingTimeout: 60000,
     pingInterval: 25000
@@ -69,12 +55,21 @@ app.get('/health', (req, res) => {
     });
 });
 
-// CORS preflight
+// CORS preflight - AGRESIF
 app.options('*', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
     res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 saat cache
     res.sendStatus(200);
+});
+
+// Her response için CORS headers
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    next();
 });
 
 // Game state - LOBI DESTEKLI

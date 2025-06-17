@@ -48,7 +48,8 @@ class MultiplayerManager {
         // ✅ GÜNCEL SERVER URL'LERİ - Özel Domain
         const servers = [
             'https://dawn-fi92.onrender.com',         // Ana Render server
-            'https://your-domain.com',                // Özel domain'iniz (güncelleyin)
+            'https://dawn-epic-card.onrender.com',    // Alternatif URL
+            'https://socket.io',                      // Socket.io demo server
             'https://epic-card-battle.vercel.app'     // Vercel backup
         ];
 
@@ -85,13 +86,13 @@ class MultiplayerManager {
 
             try {
                 this.socket = io(serverUrl, {
-                    transports: ['polling', 'websocket'], // Polling önce CORS için
-                    timeout: 10000, // 10 saniye timeout
+                    transports: ['polling'], // Sadece polling - CORS için
+                    timeout: 10000,
                     forceNew: true,
-                    reconnection: false, // Test için reconnection kapalı
+                    reconnection: false,
                     autoConnect: true,
-                    upgrade: true, // WebSocket'e yükselt
-                    rememberUpgrade: false // Her seferinde yeniden dene
+                    upgrade: false, // WebSocket upgrade yapma
+                    withCredentials: false // CORS için
                 });
 
                 this.socket.on('connect', () => {
