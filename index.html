@@ -1,1 +1,127 @@
-<!DOCTYPE html>\n<html lang=\"tr\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Epic Card Battle - Modern Interface</title>\n    <meta http-equiv=\"refresh\" content=\"3; url=/public/\">\n    <style>\n        body {\n            font-family: 'Segoe UI', system-ui, sans-serif;\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            color: white;\n            text-align: center;\n            padding: 2rem;\n            min-height: 100vh;\n            display: flex;\n            flex-direction: column;\n            justify-content: center;\n            align-items: center;\n        }\n        .container {\n            background: rgba(255,255,255,0.1);\n            backdrop-filter: blur(10px);\n            border-radius: 20px;\n            padding: 3rem;\n            border: 1px solid rgba(255,255,255,0.2);\n            max-width: 600px;\n        }\n        h1 {\n            font-size: 2.5rem;\n            margin-bottom: 1rem;\n            background: linear-gradient(45deg, #ffd700, #ff6b6b);\n            -webkit-background-clip: text;\n            -webkit-text-fill-color: transparent;\n        }\n        .spinner {\n            width: 50px;\n            height: 50px;\n            border: 4px solid rgba(255,255,255,0.3);\n            border-left-color: #6366f1;\n            border-radius: 50%;\n            animation: spin 1s linear infinite;\n            margin: 2rem auto;\n        }\n        @keyframes spin {\n            to { transform: rotate(360deg); }\n        }\n        .btn {\n            background: linear-gradient(45deg, #6366f1, #8b5cf6);\n            color: white;\n            border: none;\n            padding: 1rem 2rem;\n            border-radius: 10px;\n            font-size: 1.1rem;\n            font-weight: 600;\n            cursor: pointer;\n            text-decoration: none;\n            display: inline-block;\n            margin: 1rem;\n            transition: all 0.3s ease;\n        }\n        .btn:hover {\n            transform: translateY(-2px);\n            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);\n        }\n        .old-errors {\n            background: rgba(239, 68, 68, 0.1);\n            border: 1px solid #ef4444;\n            border-radius: 10px;\n            padding: 1rem;\n            margin: 2rem 0;\n            text-align: left;\n        }\n        .old-errors h3 {\n            color: #ef4444;\n            margin-bottom: 0.5rem;\n        }\n        .old-errors ul {\n            color: #fca5a5;\n            margin-left: 1rem;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <h1>🎮 Epic Card Battle</h1>\n        <p style=\"font-size: 1.2rem; margin-bottom: 2rem;\">Modern Socket.io Interface'e yönlendiriliyor...</p>\n        \n        <div class=\"spinner\"></div>\n        \n        <div class=\"old-errors\">\n            <h3>❌ Eski Interface Hataları Düzeltildi:</h3>\n            <ul>\n                <li>JSON.parse error - package.json fixed</li>\n                <li>multiplayer is not defined - removed old references</li>\n                <li>ReferenceError - cleaned up code</li>\n                <li>Socket.io connection issues - modern patterns</li>\n            </ul>\n        </div>\n        \n        <p>3 saniye içinde otomatik yönlendirme...</p>\n        \n        <a href=\"/public/\" class=\"btn\">🚀 Modern Interface'e Git</a>\n        \n        <div style=\"margin-top: 2rem; font-size: 0.9rem; opacity: 0.8;\">\n            <p>🔧 Yeni özellikler:</p>\n            <p>✅ Socket.io 4.x • ✅ ES6+ Modules • ✅ Modern UI • ✅ Clean Architecture</p>\n        </div>\n    </div>\n    \n    <script>\n        console.log('🔄 Redirecting to modern Socket.io interface...');\n        console.log('📝 Old errors fixed:');\n        console.log('  ✅ JSON.parse error');\n        console.log('  ✅ multiplayer is not defined');\n        console.log('  ✅ ReferenceError cleanup');\n        console.log('  ✅ Modern Socket.io patterns');\n        \n        setTimeout(() => {\n            window.location.href = '/public/';\n        }, 3000);\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epic Card Battle - Çalışan Versiyon</title>
+    <meta http-equiv="refresh" content="3; url=game.html">
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-left-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .btn {
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 1rem;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+        }
+        .fixed-issues {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        .fixed-issues h3 {
+            color: #34d399;
+            margin-bottom: 0.5rem;
+        }
+        .fixed-issues ul {
+            color: #a7f3d0;
+            margin-left: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Epic Card Battle</h1>
+        <p style="font-size: 1.2rem; margin-bottom: 2rem;">Çalışan oyun versiyonuna yönlendiriliyor...</p>
+        
+        <div class="spinner"></div>
+        
+        <div class="fixed-issues">
+            <h3>✅ Tüm Hatalar Düzeltildi:</h3>
+            <ul>
+                <li>❌ Socket.io dependency tamamen kaldırıldı</li>
+                <li>✅ Basit JavaScript ile çalışan oyun</li>
+                <li>✅ Syntax error'lar düzeltildi</li>
+                <li>✅ Multiplayer olmasa da tek başına oynayabilirsin</li>
+                <li>✅ Bot ile savaş sistemi</li>
+                <li>✅ Kart satın alma ve upgrade sistemi</li>
+                <li>✅ Responsive tasarım</li>
+                <li>✅ Hiç sunucu gereksiz - direkt çalışıyor!</li>
+            </ul>
+        </div>
+        
+        <p>3 saniye içinde oyuna yönlendirileceksin...</p>
+        
+        <a href="game.html" class="btn">🎮 OYUNU OYNA</a>
+        
+        <div style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.8;">
+            <p>🎯 Oyun Özellikleri:</p>
+            <p>⚔️ Kart Savaş Sistemi • 🤖 Bot AI • 🛒 Kart Satın Alma</p>
+            <p>💰 Altın Sistemi • ❤️ Can Sistemi • 🏆 Skor Sistemi</p>
+            <p>📱 Mobile Uyumlu • 🎮 Anında Oynanabilir</p>
+        </div>
+    </div>
+    
+    <script>
+        console.log('🔄 Redirecting to working game...');
+        console.log('✅ All errors fixed!');
+        console.log('🎮 Simple card battle game ready!');
+        
+        setTimeout(() => {
+            window.location.href = 'game.html';
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epic Card Battle - Fixed Version</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .player-section {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .player-section h2 {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .player {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+        }
+        
+        .bot {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .cards-area {
+            min-height: 200px;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: #ffd700;
+            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
+        }
+        
+        .card-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-stats {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .card-icon {
+            font-size: 2rem;
+            margin: 0.5rem 0;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #10b981, #059669);
+        }
+        
+        .battle-log {
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 1rem;
+            height: 150px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+        }
+        
+        .log-win { color: #34d399; }
+        .log-lose { color: #f87171; }
+        .log-info { color: #60a5fa; }
+        .log-battle { color: #fbbf24; }
+        
+        .battle-active .cards-area {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            animation: battlePulse 2s infinite;
+        }
+        
+        @keyframes battlePulse {
+            0%, 100% { border-color: #ffd700; }
+            50% { border-color: #ff6b6b; }
+        }
+        
+        .card.selected {
+            border-color: #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            transform: scale(1.05);
+        }
+        
+        .card.enemy {
+            border-color: #ff4444;
+        }
+        
+        .card.dead {
+            opacity: 0.3;
+            transform: scale(0.8);
+            filter: grayscale(100%);
+        }
+        
+        @media (max-width: 768px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🎮 EPIC CARD BATTLE</h1>
+            <p>Basit Kart Savaş Oyunu - Çalışan Versiyon!</p>
+        </div>
+
+        <div class="game-area">
+            <!-- Oyuncu Alanı -->
+            <div class="player-section player">
+                <h2>👤 SEN</h2>
+                <div class="stats">
+                    <span>💰 Altın: <strong id="playerGold">100</strong></span>
+                    <span>❤️ Can: <strong id="playerHealth">100</strong></span>
+                    <span>🏆 Skor: <strong id="playerScore">0</strong></span>
+                </div>
+                <div class="cards-area" id="playerCards">
+                    <!-- Oyuncu kartları buraya gelecek -->
+                </div>
+            </div>
+
+            <!-- Bot Alanı -->
+            <div class="player-section bot">
+                <h2>🤖 BOT</h2>
+                <div class="stats">
+                    <span>💰 Altın: <strong id="botGold">100</strong></span>
+                    <span>❤️ Can: <strong id="botHealth">100</strong></span>
+                    <span>🏆 Skor: <strong id="botScore">0</strong></span>
+                </div>
+                <div class="cards-area" id="botCards">
+                    <!-- Bot kartları buraya gelecek -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Kontroller -->
+        <div class="controls">
+            <button class="btn btn-success" onclick="startBattle()" id="battleBtn">⚔️ SAVAŞ BAŞLAT</button>
+            <button class="btn" onclick="buyCard()" id="buyBtn">🛒 KART SATIN AL (10 Altın)</button>
+            <button class="btn btn-danger" onclick="resetGame()">🔄 YENİ OYUN</button>
+        </div>
+
+        <!-- Savaş Logu -->
+        <div class="battle-log" id="battleLog">
+            <div class="log-entry log-info">[Oyun] Epic Card Battle başladı! Kartlara tıklayarak savaşa hazırlan!</div>
+        </div>
+    </div>
+
+    <script>
+        // Oyun Durumu
+        let gameState = {
+            player: {
+                gold: 100,
+                health: 100,
+                score: 0,
+                cards: []
+            },
+            bot: {
+                gold: 100,
+                health: 100,
+                score: 0,
+                cards: []
+            },
+            selectedCards: {
+                player: null,
+                bot: null
+            },
+            battleInProgress: false
+        };
+
+        // Kart Tipleri
+        const cardTypes = [
+            { name: 'Savaşçı', icon: '⚔️', attack: 20, defense: 15, cost: 10 },
+            { name: 'Okçu', icon: '🏹', attack: 15, defense: 10, cost: 8 },
+            { name: 'Büyücü', icon: '🔮', attack: 25, defense: 8, cost: 12 },
+            { name: 'Şövalye', icon: '🛡️', attack: 12, defense: 20, cost: 11 },
+            { name: 'Ejder', icon: '🐲', attack: 30, defense: 12, cost: 15 },
+            { name: 'Golem', icon: '🗿', attack: 18, defense: 25, cost: 14 }
+        ];
+
+        // Rastgele kart oluştur
+        function createRandomCard() {
+            const cardType = cardTypes[Math.floor(Math.random() * cardTypes.length)];
+            return {
+                id: Math.random().toString(36).substr(2, 9),
+                name: cardType.name,
+                icon: cardType.icon,
+                attack: cardType.attack + Math.floor(Math.random() * 5),
+                defense: cardType.defense + Math.floor(Math.random() * 5),
+                cost: cardType.cost,
+                currentHealth: cardType.defense + Math.floor(Math.random() * 5)
+            };
+        }
+
+        // Oyunu başlat
+        function initGame() {
+            // Başlangıç kartları ver
+            for (let i = 0; i < 3; i++) {
+                gameState.player.cards.push(createRandomCard());
+                gameState.bot.cards.push(createRandomCard());
+            }
+            
+            updateUI();
+            addLog('🎮 Oyun başladı! Kartlara tıklayarak savaşa seç ve SAVAŞ BAŞLAT butonuna bas!', 'info');
+        }
+
+        // UI'yi güncelle
+        function updateUI() {
+            // Oyuncu stats
+            document.getElementById('playerGold').textContent = gameState.player.gold;
+            document.getElementById('playerHealth').textContent = gameState.player.health;
+            document.getElementById('playerScore').textContent = gameState.player.score;
+
+            // Bot stats
+            document.getElementById('botGold').textContent = gameState.bot.gold;
+            document.getElementById('botHealth').textContent = gameState.bot.health;
+            document.getElementById('botScore').textContent = gameState.bot.score;
+
+            // Kartları render et
+            renderCards('player');
+            renderCards('bot');
+
+            // Buton durumları
+            document.getElementById('battleBtn').disabled = gameState.battleInProgress || 
+                !gameState.selectedCards.player || !gameState.selectedCards.bot;
+            document.getElementById('buyBtn').disabled = gameState.player.gold < 10;
+        }
+
+        // Kartları render et
+        function renderCards(owner) {
+            const container = document.getElementById(owner + 'Cards');
+            container.innerHTML = '';
+
+            gameState[owner].cards.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                cardElement.dataset.cardId = card.id;
+                cardElement.dataset.owner = owner;
+
+                // Seçili kart işaretle
+                if (gameState.selectedCards[owner] && gameState.selectedCards[owner].id === card.id) {
+                    cardElement.classList.add('selected');
+                }
+
+                // Ölü kart işaretle
+                if (card.currentHealth <= 0) {
+                    cardElement.classList.add('dead');
+                }
+
+                cardElement.innerHTML = `
+                    <div class="card-name">${card.name}</div>
+                    <div class="card-icon">${card.icon}</div>
+                    <div class="card-stats">
+                        ⚔️${card.attack} 🛡️${card.defense}<br>
+                        ❤️${card.currentHealth}
+                    </div>
+                `;
+
+                // Sadece canlı kartlara tıklama ekle
+                if (card.currentHealth > 0) {
+                    cardElement.onclick = () => selectCard(owner, card);
+                }
+
+                container.appendChild(cardElement);
+            });
+        }
+
+        // Kart seç
+        function selectCard(owner, card) {
+            if (gameState.battleInProgress) return;
+
+            gameState.selectedCards[owner] = card;
+            addLog(`🎯 ${owner === 'player' ? 'Sen' : 'Bot'}: ${card.name} seçildi!`, 'info');
+            
+            // Bot otomatik seçim yap
+            if (owner === 'player') {
+                setTimeout(() => {
+                    const aliveBotCards = gameState.bot.cards.filter(c => c.currentHealth > 0);
+                    if (aliveBotCards.length > 0) {
+                        const randomBotCard = aliveBotCards[Math.floor(Math.random() * aliveBotCards.length)];
+                        gameState.selectedCards.bot = randomBotCard;
+                        addLog(`🤖 Bot: ${randomBotCard.name} seçti!`, 'info');
+                        updateUI();
+                    }
+                }, 500);
+            }
+
+            updateUI();
+        }
+
+        // Savaş başlat
+        function startBattle() {
+            if (!gameState.selectedCards.player || !gameState.selectedCards.bot) {
+                addLog('❌ Önce her taraftan bir kart seç!', 'lose');
+                return;
+            }
+
+            gameState.battleInProgress = true;
+            document.body.classList.add('battle-active');
+
+            const playerCard = gameState.selectedCards.player;
+            const botCard = gameState.selectedCards.bot;
+
+            addLog(`⚔️ SAVAŞ: ${playerCard.name} vs ${botCard.name}`, 'battle');
+
+            // Savaş hesaplama
+            setTimeout(() => {
+                const playerDamage = Math.max(1, playerCard.attack - Math.floor(botCard.defense * 0.2));
+                const botDamage = Math.max(1, botCard.attack - Math.floor(playerCard.defense * 0.2));
+
+                botCard.currentHealth -= playerDamage;
+                playerCard.currentHealth -= botDamage;
+
+                addLog(`💥 ${playerCard.name} ${playerDamage} hasar verdi!`, 'info');
+                addLog(`💥 ${botCard.name} ${botDamage} hasar verdi!`, 'info');
+
+                // Sonuç kontrolü
+                let playerWon = false;
+                let botWon = false;
+
+                if (botCard.currentHealth <= 0) {
+                    addLog(`💀 ${botCard.name} öldü!`, 'win');
+                    playerWon = true;
+                }
+
+                if (playerCard.currentHealth <= 0) {
+                    addLog(`💀 ${playerCard.name} öldü!`, 'lose');
+                    botWon = true;
+                }
+
+                // Ödüller
+                if (playerWon && !botWon) {
+                    gameState.player.gold += 15;
+                    gameState.player.score += 50;
+                    addLog('🏆 KAZANDIN! +15 altın, +50 skor!', 'win');
+                } else if (botWon && !playerWon) {
+                    gameState.bot.score += 50;
+                    gameState.player.health -= 10;
+                    addLog('💔 KAYBETTİN! -10 can!', 'lose');
+                } else if (playerWon && botWon) {
+                    addLog('🤝 İkisi de öldü! Berabere!', 'info');
+                } else {
+                    addLog('🛡️ İkisi de hayatta kaldı!', 'info');
+                }
+
+                // Savaş bitir
+                gameState.battleInProgress = false;
+                gameState.selectedCards.player = null;
+                gameState.selectedCards.bot = null;
+                document.body.classList.remove('battle-active');
+
+                updateUI();
+                checkGameOver();
+            }, 1000);
+        }
+
+        // Kart satın al
+        function buyCard() {
+            if (gameState.player.gold >= 10) {
+                gameState.player.gold -= 10;
+                const newCard = createRandomCard();
+                gameState.player.cards.push(newCard);
+                addLog(`🛒 Yeni kart: ${newCard.name} satın alındı!`, 'win');
+                updateUI();
+            }
+        }
+
+        // Oyun bitişi kontrolü
+        function checkGameOver() {
+            const playerAliveCards = gameState.player.cards.filter(c => c.currentHealth > 0);
+            const botAliveCards = gameState.bot.cards.filter(c => c.currentHealth > 0);
+
+            if (gameState.player.health <= 0) {
+                addLog('💀 OYUN BİTTİ! Canın bitti!', 'lose');
+                setTimeout(() => alert('Oyunu kaybettin! Canın bitti.'), 500);
+            } else if (playerAliveCards.length === 0 && gameState.player.gold < 10) {
+                addLog('💸 OYUN BİTTİ! Kartın ve altının yok!', 'lose');
+                setTimeout(() => alert('Oyunu kaybettin! Kartın ve altının kalmadı.'), 500);
+            } else if (botAliveCards.length === 0) {
+                addLog('🏆 OYUNU KAZANDIN! Tüm bot kartlarını yendin!', 'win');
+                setTimeout(() => alert('Tebrikler! Oyunu kazandın!'), 500);
+            }
+        }
+
+        // Oyunu sıfırla
+        function resetGame() {
+            gameState = {
+                player: { gold: 100, health: 100, score: 0, cards: [] },
+                bot: { gold: 100, health: 100, score: 0, cards: [] },
+                selectedCards: { player: null, bot: null },
+                battleInProgress: false
+            };
+
+            document.getElementById('battleLog').innerHTML = '';
+            addLog('🔄 Yeni oyun başladı!', 'info');
+            initGame();
+        }
+
+        // Log ekle
+        function addLog(message, type) {
+            const logContainer = document.getElementById('battleLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            const time = new Date().toLocaleTimeString();
+            logEntry.textContent = `[${time}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // Çok fazla log varsa eski olanları sil
+            if (logContainer.children.length > 20) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        // Oyunu başlat
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame();
+        });
+    </script>
+</body>
+</html>

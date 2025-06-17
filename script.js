@@ -1564,3 +1564,8 @@ function useSpellSafely(targetSpell) {
     
     console.log('✅ ===== BÜYÜ KULLANIMI TAMAM =====');
 }
+
+// TEMİZ BÜYÜ KULLAN - YENİ VERSİYON
+function useCleanSpell(spellCard) {
+    useSpellSafely(spellCard);
+}
