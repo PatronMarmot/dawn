@@ -12,9 +12,17 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = createServer(app);
 
-// AGGRESSIVE CORS configuration
+// AGGRESSIVE CORS configuration - GitHub Pages support
 app.use(cors({
-    origin: ["http://localhost:8080", "http://127.0.0.1:8080", "http://localhost:3000", "*"],
+    origin: [
+        "http://localhost:8080", 
+        "http://127.0.0.1:8080", 
+        "http://localhost:3000",
+        "https://enesefeoglu.github.io",  // GitHub Pages URL
+        "https://*.github.io",           // Any GitHub Pages
+        "https://dawn-fi92.onrender.com", // Self-reference
+        "*"  // Allow all for development
+    ],
     methods: ["GET", "POST", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["*"]
@@ -22,7 +30,15 @@ app.use(cors({
 
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:8080", "http://127.0.0.1:8080", "http://localhost:3000", "*"],
+        origin: [
+            "http://localhost:8080", 
+            "http://127.0.0.1:8080", 
+            "http://localhost:3000",
+            "https://enesefeoglu.github.io",  // GitHub Pages
+            "https://*.github.io",           // Any GitHub Pages
+            "https://dawn-fi92.onrender.com", // Self-reference
+            "*"  // Allow all for development
+        ],
         methods: ["GET", "POST", "OPTIONS"],
         credentials: true,
         allowedHeaders: ["*"]

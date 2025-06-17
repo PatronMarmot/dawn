@@ -46,15 +46,15 @@ class MultiplayerManager {
         }
 
         const servers = [
-            'https://dawn-epic-card.onrender.com',    // Render production server
-            'https://yourdomain.com',                 // Your custom domain (update this!)
+            'https://dawn-fi92.onrender.com',        // ✅ GÜNCEL Render server URL
             'http://localhost:8080',                  // Local development
-            'http://127.0.0.1:8080'                   // Local fallback
+            'http://127.0.0.1:8080',                  // Local fallback  
+            'https://epic-card-battle.vercel.app'     // Vercel backup (opsiyonel)
         ];
 
         for (const serverUrl of servers) {
             try {
-                addLog(`🔍 Test ediliyor: ${serverUrl}`, 'info');
+                addLog(`🔍 Test ediliyor: ${serverUrl} (15 saniye timeout)`, 'info');
                 const success = await this.testSingleConnection(serverUrl);
                 
                 if (success) {
@@ -81,15 +81,17 @@ class MultiplayerManager {
                     this.socket = null;
                 }
                 resolve(false);
-            }, 5000); // 5 saniye timeout
+            }, 15000); // 15 saniye timeout (Render için uzatıldı)
 
             try {
                 this.socket = io(serverUrl, {
-                    transports: ['polling', 'websocket'],
-                    timeout: 3000,
+                    transports: ['polling', 'websocket'], // Polling önce CORS için
+                    timeout: 10000, // 10 saniye timeout
                     forceNew: true,
                     reconnection: false, // Test için reconnection kapalı
-                    autoConnect: true
+                    autoConnect: true,
+                    upgrade: true, // WebSocket'e yükselt
+                    rememberUpgrade: false // Her seferinde yeniden dene
                 });
 
                 this.socket.on('connect', () => {
