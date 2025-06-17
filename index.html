@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Epic Card Battle - Çalışan Versiyon</title>
-    <meta http-equiv="refresh" content="3; url=game.html">
+    <title>Epic Card Battle - ESKİ OYUN GERİ GELDİ!</title>
+    <meta http-equiv="refresh" content="3; url=epic-game.html">
     <style>
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -79,48 +79,60 @@
             color: #a7f3d0;
             margin-left: 1rem;
         }
+        .celebration {
+            font-size: 2rem;
+            animation: celebrate 2s infinite;
+        }
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="celebration">🎉</div>
         <h1>🎮 Epic Card Battle</h1>
-        <p style="font-size: 1.2rem; margin-bottom: 2rem;">Çalışan oyun versiyonuna yönlendiriliyor...</p>
+        <p style="font-size: 1.3rem; margin-bottom: 2rem; color: #34d399;">
+            <strong>ESKİ OYUNUNUZ GERİ GELDİ!</strong>
+        </p>
         
         <div class="spinner"></div>
         
         <div class="fixed-issues">
-            <h3>✅ Tüm Hatalar Düzeltildi:</h3>
+            <h3>✅ Başarıyla Düzeltilen Sorunlar:</h3>
             <ul>
-                <li>❌ Socket.io dependency tamamen kaldırıldı</li>
-                <li>✅ Basit JavaScript ile çalışan oyun</li>
-                <li>✅ Syntax error'lar düzeltildi</li>
-                <li>✅ Multiplayer olmasa da tek başına oynayabilirsin</li>
-                <li>✅ Bot ile savaş sistemi</li>
-                <li>✅ Kart satın alma ve upgrade sistemi</li>
-                <li>✅ Responsive tasarım</li>
-                <li>✅ Hiç sunucu gereksiz - direkt çalışıyor!</li>
+                <li>❌ Syntax error'lar tamamen giderildi</li>
+                <li>✅ Script.js'deki eksik parantezler eklendi</li>
+                <li>✅ Eski kart savaş sistemi geri geldi</li>
+                <li>✅ Büyü sistemi çalışıyor</li>
+                <li>✅ Bot AI aktif</li>
+                <li>✅ Tüm animasyonlar düzeltildi</li>
+                <li>✅ Responsive tasarım korundu</li>
+                <li>✅ Kart koleksiyonu sistemi aktif</li>
             </ul>
         </div>
         
-        <p>3 saniye içinde oyuna yönlendirileceksin...</p>
+        <p style="font-size: 1.1rem; color: #fbbf24;">3 saniye içinde eski oyununuza yönlendirileceksiniz...</p>
         
-        <a href="game.html" class="btn">🎮 OYUNU OYNA</a>
+        <a href="epic-game.html" class="btn">🎮 ESKİ OYUNU OYNA</a>
         
         <div style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.8;">
-            <p>🎯 Oyun Özellikleri:</p>
-            <p>⚔️ Kart Savaş Sistemi • 🤖 Bot AI • 🛒 Kart Satın Alma</p>
-            <p>💰 Altın Sistemi • ❤️ Can Sistemi • 🏆 Skor Sistemi</p>
-            <p>📱 Mobile Uyumlu • 🎮 Anında Oynanabilir</p>
+            <p>🎯 Eski Oyun Özellikleri:</p>
+            <p>⚔️ Epic Kart Savaşları • 🔮 Büyü Sistemi • 🤖 Bot AI</p>
+            <p>💰 Altın Kazanma • 🃏 Kart Koleksiyonu • 🏆 Skor Sistemi</p>
+            <p>📱 Tam Responsive • 🎮 Önceki Tüm Özellikler</p>
         </div>
+        <div class="celebration">🎉</div>
     </div>
     
     <script>
-        console.log('🔄 Redirecting to working game...');
-        console.log('✅ All errors fixed!');
-        console.log('🎮 Simple card battle game ready!');
+        console.log('🎉 ESKİ OYUN GERİ GELDİ!');
+        console.log('✅ Tüm syntax hatalar düzeltildi!');
+        console.log('🎮 Epic Card Battle restore edildi!');
         
         setTimeout(() => {
-            window.location.href = 'game.html';
+            window.location.href = 'epic-game.html';
         }, 3000);
     </script>
 </body>
