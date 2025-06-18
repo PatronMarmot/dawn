@@ -1,4 +1,74 @@
-    handleDisconnect(reason) {
+    // Bağlantı durumu gösterici
+    showConnectionStatus(connected, mode) {
+        let statusDiv = document.getElementById('connectionStatus');
+        
+        if (!statusDiv) {
+            statusDiv = document.createElement('div');
+            statusDiv.id = 'connectionStatus';
+            statusDiv.className = 'connection-status';
+            document.body.appendChild(statusDiv);
+        }
+        
+        const statusText = connected ? `✅ ${mode}` : '❌ Bağlantı Yok';
+        statusDiv.textContent = statusText;
+        
+        // CSS class'ı güncelle
+        statusDiv.className = 'connection-status ' + 
+            (connected ? 
+                (this.socket?.connected ? 'connected' : 'connected') : 
+                'disconnected'
+            );
+        
+        // Bağlantı başarılıysa 5 saniye sonra gizle
+        if (connected) {
+            setTimeout(() => {
+                if (statusDiv && this.connected) {
+                    statusDiv.style.opacity = '0.3';
+                    setTimeout(() => {
+                        if (statusDiv && statusDiv.style.opacity === '0.3') {
+                            statusDiv.style.display = 'none';
+                        }
+                    }, 2000);
+                }
+            }, 5000);
+        } else {
+            statusDiv.style.opacity = '1';
+            statusDiv.style.display = 'block';
+        }
+    }    // Hata gösterme fonksiyonu
+    showJoinError(message) {
+        const errorModal = document.createElement('div');
+        errorModal.className = 'modal';
+        errorModal.style.display = 'flex';
+        errorModal.innerHTML = `
+            <div class="modal-content">
+                <h2>❌ Bağlantı Hatası</h2>
+                <div class="error-content">
+                    <p><strong>Hata:</strong> ${message}</p>
+                    <div class="error-suggestions">
+                        <h3>💡 Çözüm Önerileri:</h3>
+                        <ul>
+                            <li>🔄 Oyun ID'sini kontrol edin</li>
+                            <li>🏠 Yeni oyun oluşturmayı deneyin</li>
+                            <li>🌐 İnternet bağlantınızı kontrol edin</li>
+                            <li>⏳ Birkaç saniye bekleyip tekrar deneyin</li>
+                        </ul>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="menu-btn primary-btn">
+                        ✅ Anladım
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(errorModal);
+        
+        // 10 saniye sonra otomatik kapat
+        setTimeout(() => {
+            if (errorModal.parentElement) {
+                errorModal.remove();
+            }
+        }, 10000);
+    }    handleDisconnect(reason) {
         this.connected = false;
         this.updateMultiplayerUI(false);
         
@@ -7,12 +77,29 @@
             this.heartbeatInterval = null;
         }
         
-        addLog(`🔌 Bağlantı kesildi: ${reason || 'Bilinmeyen sebep'}`, 'error');
+        // Detaylı bağlantı kesilme mesajları
+        switch(reason) {
+            case 'transport close':
+                addLog('🔌 Server bağlantısı kesildi', 'error');
+                addLog('🔄 Ağ bağlantınızı kontrol edin', 'info');
+                break;
+            case 'ping timeout':
+                addLog('⏰ Server yanıt vermiyor (timeout)', 'error');
+                addLog('🌐 İnternet bağlantınız yavaş olabilir', 'info');
+                break;
+            case 'transport error':
+                addLog('❌ Bağlantı hatası oluştu', 'error');
+                addLog('🔧 Server geçici olarak erişilemez olabilir', 'info');
+                break;
+            default:
+                addLog(`🔌 Bağlantı kesildi: ${reason || 'Bilinmeyen sebep'}`, 'error');
+        }
         
         // Auto-reconnect after 5 seconds
         setTimeout(() => {
             if (!this.connected) {
                 addLog('🔄 Yeniden bağlanmaya çalışılıyor...', 'info');
+                addLog('⏳ Lütfen bekleyin, alternatif serverlar deneniyor', 'info');
                 this.connect();
             }
         }, 5000);
@@ -100,6 +187,11 @@ class RenderMultiplayerManager {
                     this.playerId = this.generateId();
                     this.playerName = 'Oyuncu' + Math.floor(Math.random() * 1000);
                     
+                    // Bağlantı başarılı bildirimi
+                    addLog(`✅ Server bağlantısı başarılı: ${wsUrl}`, 'win');
+                    addLog(`🎮 Oyuncu ID: ${this.playerId}`, 'info');
+                    addLog(`👤 Oyuncu Adı: ${this.playerName}`, 'info');
+                    
                     this.socket.emit('register_player', {
                         name: this.playerName,
                         id: this.playerId
@@ -112,6 +204,8 @@ class RenderMultiplayerManager {
 
                 this.socket.on('connect_error', (error) => {
                     clearTimeout(connectionTimeout);
+                    addLog(`❌ Server bağlantı hatası: ${wsUrl}`, 'error');
+                    addLog(`🔍 Hata detayı: ${error.message || 'Bilinmeyen hata'}`, 'error');
                     if (this.socket) {
                         this.socket.disconnect();
                         this.socket = null;
@@ -135,30 +229,50 @@ class RenderMultiplayerManager {
         
         this.socket.on('player_registered', (data) => {
             addLog('🎮 Socket.io multiplayer sistem hazır!', 'win');
+            addLog('🔗 Server ile bağlantı kuruldu ve oyuncu kaydedildi', 'win');
         });
         
         this.socket.on('game_created', (data) => {
+            addLog(`🏠 Oyun odası başarıyla oluşturuldu!`, 'win');
+            addLog(`🎯 Oda ID: ${data.gameId}`, 'info');
             this.onGameCreated(data);
         });
         
         this.socket.on('player_joined', (data) => {
+            addLog(`👥 Oyuncu odaya katıldı: ${data.player?.name || 'Anonim'}`, 'win');
+            addLog(`🎮 Toplam oyuncu: ${data.players?.length || 2}`, 'info');
             this.onPlayerJoined(data);
         });
         
         this.socket.on('game_started', (data) => {
+            addLog('🚀 Multiplayer oyun başlıyor!', 'win');
+            addLog('⚔️ Savaş arenasına hoş geldiniz!', 'win');
             this.onGameStarted(data);
         });
         
         this.socket.on('match_found', (data) => {
+            addLog(`⚡ Hızlı eşleşme bulundu!`, 'win');
+            addLog(`🆚 Rakip: ${data.opponent?.name || 'Anonim'}`, 'info');
             this.onMatchFound(data);
         });
         
         this.socket.on('searching_match', (data) => {
-            addLog('⚡ Rakip aranıyor...', 'info');
+            addLog('🔍 Rakip aranıyor...', 'info');
+            addLog('⏳ Lütfen bekleyin, eşleşme bulunuyor', 'info');
+        });
+        
+        // Hata durumları
+        this.socket.on('join_error', (data) => {
+            addLog(`❌ Odaya katılma hatası: ${data.message}`, 'error');
+            this.showJoinError(data.message);
+        });
+        
+        this.socket.on('game_error', (data) => {
+            addLog(`🚫 Oyun hatası: ${data.message}`, 'error');
         });
         
         this.socket.on('pong', (data) => {
-            // Heartbeat response
+            // Heartbeat response - sessiz
         });
     }
 
@@ -221,11 +335,13 @@ class RenderMultiplayerManager {
 
         if (this.socket && this.socket.connected) {
             // Socket.io server mode
+            addLog('🏠 Server üzerinde oyun odası oluşturuluyor...', 'info');
             this.socket.emit('create_game', {
                 playerName: this.playerName
             });
         } else {
             // Local mode fallback
+            addLog('🏠 Local mode: Oyun odası oluşturuluyor...', 'info');
             this.gameId = this.generateId();
             this.isHost = true;
             
@@ -264,6 +380,7 @@ class RenderMultiplayerManager {
 
         if (this.socket && this.socket.connected) {
             // Socket.io server mode
+            addLog(`🚪 Server üzerinde ${gameId} odasına katılınıyor...`, 'info');
             this.gameId = gameId.trim().toUpperCase();
             this.socket.emit('join_game', {
                 gameId: this.gameId,
@@ -271,6 +388,7 @@ class RenderMultiplayerManager {
             });
         } else {
             // Local mode fallback
+            addLog(`🏠 Local mode: ${gameId} odasına katılınıyor...`, 'info');
             this.gameId = gameId.trim().toUpperCase();
             this.isHost = false;
             
@@ -279,6 +397,7 @@ class RenderMultiplayerManager {
             
             if (!gameData) {
                 addLog(`❌ Oyun bulunamadı: ${this.gameId}`, 'error');
+                addLog('💡 ID'yi kontrol edin veya yeni oyun oluşturun', 'info');
                 return;
             }
             
@@ -287,6 +406,7 @@ class RenderMultiplayerManager {
                 
                 if (game.status !== 'waiting') {
                     addLog(`❌ Oyun zaten başlamış: ${this.gameId}`, 'error');
+                    addLog('🔄 Yeni oyun oluşturabilir veya başka ID deneyebilirsiniz', 'info');
                     return;
                 }
                 
@@ -312,6 +432,7 @@ class RenderMultiplayerManager {
                 
             } catch (error) {
                 addLog(`❌ Oyun data'sı okunamadı: ${this.gameId}`, 'error');
+                addLog('🔧 Local storage hatası, sayfa yenilenebilir', 'info');
                 return;
             }
         }
@@ -322,35 +443,45 @@ class RenderMultiplayerManager {
     findQuickMatch() {
         if (this.socket && this.socket.connected) {
             // Socket.io server quick match
-            addLog('⚡ Hızlı eşleşme aranıyor...', 'info');
+            addLog('⚡ Hızlı eşleşme başlatılıyor...', 'info');
+            addLog('🔍 Uygun rakip aranıyor...', 'info');
             this.socket.emit('find_quick_match', {
                 playerName: this.playerName
             });
         } else {
             // Local mode fallback
             addLog('🏠 Local mode: Otomatik oda oluşturuluyor...', 'info');
+            addLog('💡 Aynı tarayıcıda yeni sekme açarak test edin', 'info');
             this.createGame();
         }
     }
 
     onGameCreated(data) {
-        addLog(`🏠 Oyun odası oluşturuldu! ID: ${this.gameId}`, 'win');
+        addLog(`🏠 Oyun odası başarıyla oluşturuldu!`, 'win');
+        addLog(`🎯 Oda ID: ${this.gameId}`, 'win');
+        addLog('📋 Bu ID'yi arkadaşlarınızla paylaşın', 'info');
         this.showWaitingRoom();
     }
 
     onPlayerJoined(data) {
         this.opponent = data.opponent;
-        addLog(`👥 ${this.opponent.name} oyuna katıldı!`, 'info');
+        addLog(`👥 ${this.opponent.name} oyuna katıldı!`, 'win');
+        addLog('🎮 Oyun kısa süre içinde başlayacak...', 'info');
         
         if (this.isHost) {
-            addLog('🎮 Oyun 2 saniye içinde başlayacak...', 'info');
+            addLog('🏠 Siz ev sahibisiniz, oyunu başlatıyorsunuz', 'info');
             setTimeout(() => {
                 this.startGame();
             }, 2000);
+        } else {
+            addLog('🚪 Ev sahibi oyunu başlatmayı bekliyor', 'info');
         }
     }
 
     startGame() {
+        addLog('🚀 Multiplayer oyun başlatılıyor...', 'win');
+        addLog('⚔️ Kart savaşına hazır olun!', 'win');
+        
         const gameStartMessage = {
             type: 'game_started',
             data: {
@@ -364,7 +495,8 @@ class RenderMultiplayerManager {
     }
 
     onGameStarted(data) {
-        addLog('🎮 Multiplayer oyun başlıyor!', 'win');
+        addLog('🎮 Multiplayer oyun başladı!', 'win');
+        addLog('⚡ Gerçek zamanlı senkronizasyon aktif', 'win');
         this.closeWaitingRoom();
         
         if (typeof gameState !== 'undefined') {
@@ -375,9 +507,9 @@ class RenderMultiplayerManager {
         this.isMyTurn = data.firstPlayer === this.playerId;
         
         if (this.isMyTurn) {
-            addLog('⏰ Sizin ilk turunuz!', 'win');
+            addLog('⏰ İlk tur sizin! Kartlarınızı yerleştirin', 'win');
         } else {
-            addLog(`⏳ ${this.opponent?.name || 'Rakip'} başlıyor...`, 'info');
+            addLog(`⏳ ${this.opponent?.name || 'Rakip'} başlıyor, sıranızı bekleyin`, 'info');
         }
         
         if (typeof hideMainMenu === 'function') {
@@ -432,6 +564,9 @@ class RenderMultiplayerManager {
             statusElement.style.color = connected ? '#10b981' : '#ef4444';
         }
         
+        // Sağ üst köşede bağlantı durumu göster
+        this.showConnectionStatus(connected, mode);
+        
         const multiplayerButtons = document.querySelectorAll('#createGameBtn, #joinGameBtn, #quickMatchBtn');
         multiplayerButtons.forEach(btn => {
             if (btn) {
@@ -447,9 +582,11 @@ class RenderMultiplayerManager {
             localStorage.removeItem(`epic_game_${this.gameId}_join`);
         }
         
+        addLog('❌ Oyun iptal edildi', 'error');
+        addLog('🏠 Ana menüye döndünüz', 'info');
+        
         this.resetMultiplayerState();
         this.closeWaitingRoom();
-        addLog('❌ Oyun iptal edildi', 'info');
     }
 
     resetMultiplayerState() {
@@ -763,6 +900,70 @@ if (!document.querySelector('#render-multiplayer-css')) {
     styleElement.id = 'render-multiplayer-css';
     styleElement.textContent = renderMultiplayerCSS;
     document.head.appendChild(styleElement);
+}
+
+// Error Modal ve Connection Status için ek CSS
+const additionalCSS = `
+.error-content {
+    text-align: center;
+    padding: 1rem;
+}
+
+.error-suggestions {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+    text-align: left;
+}
+
+.error-suggestions h3 {
+    margin: 0 0 0.5rem 0;
+    color: #ef4444;
+}
+
+.error-suggestions ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.error-suggestions li {
+    margin: 0.25rem 0;
+    color: #374151;
+}
+
+.connection-status {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+    background: rgba(16, 185, 129, 0.9);
+}
+
+.connection-status.disconnected {
+    background: rgba(239, 68, 68, 0.9);
+}
+
+.connection-status.connecting {
+    background: rgba(245, 158, 11, 0.9);
+}
+`;
+
+if (!document.querySelector('#additional-multiplayer-css')) {
+    const additionalStyleElement = document.createElement('style');
+    additionalStyleElement.id = 'additional-multiplayer-css';
+    additionalStyleElement.textContent = additionalCSS;
+    document.head.appendChild(additionalStyleElement);
 }
 
 // DOMContentLoaded event'inde menü event'lerini kur
