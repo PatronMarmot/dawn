@@ -17,13 +17,154 @@ class RenderMultiplayerManager {
 
     async connect() {
         try {
-            addLog('🌐 Render multiplayer sistemi başlatılıyor...', 'info');
-            await this.enableLocalMode();
+            addLog('🌐 Multiplayer sistemi başlatılıyor...', 'info');
+            const serverWorked = await this.tryServerConnection();
+            
+            if (!serverWorked) {
+                addLog('⚠️ Server bağlantısı kurulamadı, local mode aktif', 'info');
+                await this.enableLocalMode();
+            }
         } catch (error) {
-            console.error('🚫 Render multiplayer sistem hatası:', error);
+            console.error('🚫 Multiplayer sistem hatası:', error);
             addLog('🔧 Local mode aktif...', 'info');
             await this.enableLocalMode();
         }
+    }
+
+    async tryServerConnection() {
+        // 🌐 ÖZEL DOMAIN + BACKUP SERVERS
+        const servers = [
+            'https://dawnlighten.com.tr',           // 🏠 Ana özel domain
+            'https://www.dawnlighten.com.tr',       // 🌐 WWW versiyonu
+            'https://dawn-epic-card.vercel.app',    // 🔄 Vercel backup
+            'https://dawn-fi92.onrender.com',       // 🔄 Render backup  
+            'https://dawn-epic-card.onrender.com'   // 🔄 Alternatif
+        ];
+
+        for (const serverUrl of servers) {
+            try {
+                addLog(`🔍 Server test: ${serverUrl}...`, 'info');
+                const success = await this.testServerConnection(serverUrl);
+                
+                if (success) {
+                    addLog(`✅ Bağlantı başarılı: ${serverUrl}`, 'win');
+                    return true;
+                }
+            } catch (error) {
+                console.log(`❌ ${serverUrl} bağlantı başarısız:`, error.message);
+                continue;
+            }
+        }
+        return false;
+    }
+
+    testServerConnection(serverUrl) {
+        return new Promise((resolve) => {
+            const connectionTimeout = setTimeout(() => {
+                if (this.socket) {
+                    this.socket.close();
+                    this.socket = null;
+                }
+                resolve(false);
+            }, 15000); // 15 saniye timeout
+
+            try {
+                const wsUrl = serverUrl.replace('https://', 'wss://').replace('http://', 'ws://');
+                this.socket = new WebSocket(wsUrl + '/ws');
+
+                this.socket.onopen = () => {
+                    clearTimeout(connectionTimeout);
+                    this.connected = true;
+                    this.setupServerEvents();
+                    this.playerId = this.generateId();
+                    this.playerName = 'Oyuncu' + Math.floor(Math.random() * 1000);
+                    
+                    this.sendServerMessage({
+                        type: 'register_player',
+                        data: { name: this.playerName, id: this.playerId }
+                    });
+                    
+                    this.updateMultiplayerUI(true);
+                    this.startHeartbeat();
+                    resolve(true);
+                };
+
+                this.socket.onerror = (error) => {
+                    clearTimeout(connectionTimeout);
+                    if (this.socket) {
+                        this.socket.close();
+                        this.socket = null;
+                    }
+                    resolve(false);
+                };
+
+                this.socket.onclose = (event) => {
+                    this.handleDisconnect();
+                };
+
+            } catch (error) {
+                clearTimeout(connectionTimeout);
+                resolve(false);
+            }
+        });
+    }
+
+    setupServerEvents() {
+        if (!this.socket) return;
+        this.socket.onmessage = (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                this.handleServerMessage(message);
+            } catch (e) {
+                console.warn('Server message parse error:', e);
+            }
+        };
+    }
+
+    handleServerMessage(message) {
+        switch (message.type) {
+            case 'player_registered':
+                addLog('🎮 Server multiplayer sistem hazır!', 'win');
+                break;
+            case 'game_created':
+                this.onGameCreated(message.data);
+                break;
+            case 'player_joined':
+                this.onPlayerJoined(message.data);
+                break;
+            case 'game_started':
+                this.onGameStarted(message.data);
+                break;
+        }
+    }
+
+    sendServerMessage(message) {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            return false;
+        }
+        
+        try {
+            this.socket.send(JSON.stringify(message));
+            return true;
+        } catch (error) {
+            console.error('❌ Server mesaj gönderme hatası:', error);
+            return false;
+        }
+    }
+
+    startHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+        }
+        
+        this.heartbeatInterval = setInterval(() => {
+            if (this.connected && this.socket) {
+                this.sendServerMessage({
+                    type: 'ping',
+                    data: { timestamp: Date.now() }
+                });
+            }
+        }, 25000);
     }
 
     async enableLocalMode() {
@@ -223,9 +364,11 @@ class RenderMultiplayerManager {
     }
 
     updateMultiplayerUI(connected) {
+        const mode = (this.socket?.readyState === WebSocket.OPEN) ? '🌐 Server Mode' : (this.isLocalMode ? '🏠 Local Mode' : '🔄 Bağlanıyor...');
+        
         const statusElement = document.getElementById('multiplayerStatus');
         if (statusElement) {
-            const statusText = connected ? '🟢 Local Mode aktif!' : '🔴 Multiplayer hazırlanıyor...';
+            const statusText = connected ? `🟢 ${mode} aktif!` : '🔴 Multiplayer hazırlanıyor...';
             statusElement.innerHTML = `<p>${statusText}</p>`;
             statusElement.style.color = connected ? '#10b981' : '#ef4444';
         }

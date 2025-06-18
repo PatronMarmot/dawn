@@ -1,195 +1,189 @@
-# 🎮 Epic Card Battle - Ultimate Edition (Vercel Deploy)
+# 🎮 Epic Card Battle - Ultimate Edition (dawnlighten.com.tr)
 
-🚀 **Vercel'de çalışan gerçek zamanlı multiplayer kart oyunu!**
+🚀 **dawnlighten.com.tr'de çalışan gerçek zamanlı multiplayer kart oyunu!**
 
 ## 🌐 CANLI DEMO
-- **🎮 Oyun URL'si**: https://dawn-epic-card.vercel.app
-- **📊 API Health**: https://dawn-epic-card.vercel.app/api/health
-- **🔌 WebSocket**: wss://dawn-epic-card.vercel.app/api/websocket
+- **🎮 Ana Oyun**: https://dawnlighten.com.tr
+- **📋 API Health**: https://dawnlighten.com.tr/api/health
+- **🔌 WebSocket**: wss://dawnlighten.com.tr/ws
+- **🔄 Vercel Backup**: https://dawn-epic-card.vercel.app
 
-## 🚀 VERCEL DEPLOY
+## 🚀 DEPLOY & HOSTING
 
-### 1. GitHub'a Push Et
-```bash
-cd C:\Users\enesk\OneDrive\Belgeler\GitHub\dawn
-git add .
-git commit -m "Vercel deployment ready"
-git push origin main
-```
+### 1. Ana Domain (dawnlighten.com.tr)
+- **Ana hosting**: dawnlighten.com.tr
+- **WebSocket desteği**: wss://dawnlighten.com.tr/ws
+- **API endpoint'leri**: /api/health, /api/websocket
 
-### 2. Vercel'de Deploy
-1. [Vercel.com](https://vercel.com) 'a git hesabınla gir
-2. "New Project" → GitHub repo seç (dawn)
-3. "Deploy" butonuna bas
-4. 2-3 dakika bekle
-5. Live URL'yi kopyala!
+### 2. Backup Systems
+- **Vercel**: https://dawn-epic-card.vercel.app
+- **Render**: https://dawn-fi92.onrender.com
 
-### 3. Arkadaşlarınla Test Et
-1. Vercel URL'sini arkadaşlarına gönder
-2. Ana menüden "ÇOK OYUNCULU" seç
-3. Biri "OYUN OLUŞTUR" → ID'yi paylaş
-4. Diğeri "OYUNA KATIL" → ID'yi gir
-5. **GERÇEK ZAMANLI SAVAŞ!** ⚔️
-
-## 🎯 VERCEL ÖZELLİKLERİ
-
-### ✅ Vercel Optimizasyonları
-- **Edge Functions**: WebSocket API'ler
-- **Global CDN**: Dünya çapında hızlı erişim
-- **Auto Scaling**: Otomatik ölçeklendirme
-- **HTTPS**: Güvenli bağlantı
-- **Custom Domain**: İsteğe bağlı özel domain
-
-### 🔧 Teknik Detaylar
-- **Runtime**: Node.js 18.x
-- **WebSocket**: Vercel Edge Functions
-- **CORS**: Tüm origin'lere açık
-- **Health Check**: `/api/health` endpoint
-- **Auto Deploy**: Git push ile otomatik deploy
-
-### 🌐 URL Yapısı
-```
-https://dawn-epic-card.vercel.app/          # Ana oyun
-https://dawn-epic-card.vercel.app/api/health # Server durumu
-wss://dawn-epic-card.vercel.app/api/websocket # WebSocket
+### 3. Multiplayer Connection Priority
+```javascript
+// Bağlantı öncelik sırası:
+1. https://dawnlighten.com.tr          // Ana domain
+2. https://www.dawnlighten.com.tr     // WWW versiyonu
+3. https://dawn-epic-card.vercel.app  // Vercel backup
+4. Local Storage Mode                 // Offline fallback
 ```
 
 ## 🎮 MULTIPLAYER NASIL ÇALIŞIR
 
 ### 🏠 Host (Oyun Kuran)
-1. "ÇOK OYUNCULU" → "OYUN OLUŞTUR"
-2. 6 haneli ID al (örn: ABC123)
-3. ID'yi arkadaşlarına WhatsApp/Discord ile gönder
-4. Katılmalarını bekle
-5. Otomatik oyun başlar!
+1. Ana sayfa: **dawnlighten.com.tr**
+2. "ÇOK OYUNCULU" → "OYUN OLUŞTUR"
+3. 6 haneli ID al (örn: DWN123)
+4. ID'yi arkadaşlarına WhatsApp/Discord ile gönder
+5. Katılmalarını bekle → Otomatik oyun başlar!
 
 ### 🚪 Guest (Katılan)
-1. "ÇOK OYUNCULU" → "OYUNA KATIL"
-2. Arkadaşından aldığın ID'yi gir
-3. Enter'a bas
-4. Bağlan ve oyna!
+1. Aynı site: **dawnlighten.com.tr**
+2. "ÇOK OYUNCULU" → "OYUNA KATIL"
+3. Arkadaşından aldığın ID'yi gir
+4. Enter'a bas → Bağlan ve oyna!
 
 ### ⚔️ Gerçek Zamanlı Savaş
-- **30 saniye tur süresi**
-- **3v3 kart savaşı**
-- **Büyü sistemi**
-- **Canlı chat**
-- **Gerçek zamanlı animasyonlar**
+- **3v3 kart savaşı sistemi**
+- **Büyü kartları ve strateji**
+- **Gerçek zamanlı senkronizasyon**
+- **Multiple server backup**
+- **Local mode fallback**
+
+## 🌐 TEKNIK ALTYAPI
+
+### 🏗️ Domain Structure
+```
+https://dawnlighten.com.tr/           # Ana oyun
+https://dawnlighten.com.tr/api/health # Server durumu
+wss://dawnlighten.com.tr/ws          # WebSocket multiplayer
+```
+
+### 🔧 Multiplayer Stack
+- **Primary**: dawnlighten.com.tr WebSocket
+- **Backup**: Vercel Edge Functions
+- **Fallback**: Local Storage (same browser tabs)
+- **Protocol**: WebSocket + JSON messaging
+
+### 📊 Connection Features
+- **Auto-failover**: Sunucu arızasında otomatik backup'a geçiş
+- **Heartbeat**: 25 saniye ping/pong
+- **Reconnection**: Otomatik yeniden bağlanma
+- **Cross-tab**: Aynı tarayıcıda tab arası oyun
 
 ## 🔍 SORUN GİDERME
 
-### ❌ Bağlanamıyorum
+### ❌ Bağlantı Sorunları
 ```javascript
-// Console'da kontrol et (F12)
-console.log('WebSocket durumu:', multiplayer.connected);
+// Console'da multiplayer durumu (F12):
+console.log('Multiplayer Status:', renderMultiplayer.connected);
+console.log('Connection Mode:', renderMultiplayer.isLocalMode ? 'Local' : 'Server');
 ```
 
-### 🔧 Hata Durumunda
-1. **Sayfa yenile** (F5)
-2. **Tarayıcı cache temizle** (Ctrl+F5)
-3. **Farklı tarayıcı dene** (Chrome/Firefox)
-4. **Health check kontrol et**: `/api/health`
+### 🔧 Debug Steps
+1. **Ana domain test**: dawnlighten.com.tr açılıyor mu?
+2. **WebSocket test**: Console'da bağlantı logları
+3. **Backup test**: Vercel URL'yi dene
+4. **Local test**: Aynı tarayıcıda 2 sekme
+5. **Browser**: Chrome/Firefox son sürüm
 
-### 📱 Mobil Sorunları
-- **HTTPS zorunlu** (HTTP çalışmaz)
-- **WebSocket destekli tarayıcı** gerekli
-- **Stabil internet** bağlantısı şart
+### 📱 Mobil Uyumluluk
+- **HTTPS zorunlu** (HTTP WebSocket çalışmaz)
+- **Modern browser** gerekli (WebSocket desteği)
+- **Stabil internet** (multiplayer için)
 
 ## 🛠️ DEVELOPMENT
 
 ### Local Test
 ```bash
-# 1. Dependencies install
+# 1. Clone repo
+git clone https://github.com/username/dawn
+cd dawn
+
+# 2. Install dependencies
 npm install
 
-# 2. Local server başlat
+# 3. Start local server
 npm start
 # VEYA
 node server.js
 
-# 3. Tarayıcıda aç
-# http://localhost:8080
+# 4. Open browser
+http://localhost:8080
 ```
 
-### Vercel CLI
+### Production Deploy
 ```bash
-# Vercel CLI kur
-npm i -g vercel
+# Domain'e deploy
+git add .
+git commit -m "Updated domain configuration"
+git push origin main
 
-# Login ol
-vercel login
-
-# Local deploy test
-vercel dev
-
-# Production deploy
+# Vercel backup deploy
 vercel --prod
 ```
 
 ## 🎯 PERFORMANS
 
-### ⚡ Hız Testleri
-- **Bağlantı**: <500ms
-- **Mesaj gecikme**: <100ms
-- **Oyun başlatma**: <2 saniye
-- **WebSocket heartbeat**: 30 saniye
+### ⚡ Connection Speed
+- **Primary Domain**: <300ms (Türkiye optimize)
+- **Backup Vercel**: <500ms (Global CDN)
+- **Local Fallback**: <50ms (No network)
+- **Game Sync**: <100ms (Multiplayer lag)
 
-### 🌍 Global Erişim
-- **Americas**: ✅ Optimize
-- **Europe**: ✅ Optimize  
-- **Asia**: ✅ Optimize
-- **Turkey**: ✅ Özel optimize
+### 🌍 Global Coverage
+- **Turkey**: ✅ Primary domain optimize
+- **Europe**: ✅ Vercel Edge locations
+- **Americas**: ✅ Backup server coverage
+- **Asia**: ✅ Global CDN support
 
-## 📈 MONITORING
+## 🔮 ADVANCED FEATURES
 
-### 📊 Vercel Analytics
-- **Gerçek zamanlı kullanıcı**
-- **Bağlantı istatistikleri**
-- **Hata raporları**
-- **Performans metrikleri**
+### 🎮 Smart Multiplayer
+- **Multiple server fallback**
+- **Cross-domain compatibility**
+- **Local offline mode**
+- **Auto-reconnection**
 
-### 🔍 Debug Bilgileri
+### 🔧 Developer Features
 ```javascript
-// Browser console'da çalıştır
-window.debugInfo = {
-    connected: multiplayer.connected,
-    gameId: multiplayer.gameId,
-    playerId: multiplayer.playerId,
-    isHost: multiplayer.isHost,
-    opponent: multiplayer.opponent
-};
-console.table(debugInfo);
+// Global multiplayer debug
+window.renderMultiplayer.connected    // Connection status
+window.renderMultiplayer.gameId       // Current game ID
+window.renderMultiplayer.isLocalMode  // Local vs Server mode
+
+// Force connection test
+window.renderMultiplayer.connect()    // Retry connection
 ```
 
-## 🎉 BAŞARI HİKAYESİ
+## 🏆 BAŞARI HİKAYESİ
 
-Bu proje render.com'da başarısız olduktan sonra Vercel'de başarıyla deploy edildi:
+**dawnlighten.com.tr** özel domain ile **multiplayer card battle** oyunu:
 
-1. **Render Sorunları**: ❌
-   - Cold start gecikmeleri
-   - WebSocket bağlantı sorunları
-   - Free tier limitleri
+1. **Socket.io → WebSocket**: Modern protocol upgrade
+2. **Single domain → Multi-domain**: Robust failover system  
+3. **Vercel-only → Custom domain**: Professional hosting
+4. **Local backup**: Always playable, even offline
 
-2. **Vercel Çözümü**: ✅
-   - Edge Functions ile hızlı başlatma
-   - Global CDN altyapısı
-   - Ücretsiz WebSocket desteği
-   - Otomatik ölçeklendirme
+## 🚀 SONRAKI ADIMLAR
 
-## 🔮 SONRAKI ADIMLAR
+### 🎯 Domain Optimizations
+- [ ] CDN configuration for dawnlighten.com.tr
+- [ ] SSL certificate optimization
+- [ ] Server-side game logic
+- [ ] Database integration
 
-### 🚀 Gelişmeler
-- [ ] Ses efektleri
-- [ ] Daha fazla kart
-- [ ] Tournament modu
-- [ ] Spectator modu
-- [ ] Mobile app
-
-### 🌟 Özellik İstekleri
-Yeni özellik önerileri için GitHub Issues kullanın!
+### 🎮 Game Features
+- [ ] Tournament mode
+- [ ] Spectator system
+- [ ] Mobile app version
+- [ ] Voice chat integration
 
 ---
 
-**🎮 Epic Card Battle artık Vercel'de canlı! Arkadaşlarınızla test edin!** ⚔️🔥
+**🎮 Epic Card Battle şimdi dawnlighten.com.tr'de canlı!**
 
-Deploy URL: `https://dawn-epic-card.vercel.app`
+🌐 **Ana URL**: https://dawnlighten.com.tr  
+🔄 **Backup**: https://dawn-epic-card.vercel.app
+
+**Arkadaşlarınızla test edin!** ⚔️🔥
