@@ -27,8 +27,24 @@
                 </button>
                 <button class="menu-btn secondary-btn" id="multiplayerBtn">
                     <span class="btn-icon">👥</span>
-                    ÇOK OYUNCULU (Yakında)
+                    ÇOK OYUNCULU
                 </button>
+                
+                <!-- MULTIPLAYER ALT MENÜ -->
+                <div class="multiplayer-submenu" id="multiplayerSubmenu" style="display: none; margin-top: 1rem;">
+                    <button class="menu-btn multiplayer-sub-btn" id="createGameBtn">
+                        <span class="btn-icon">🏠</span>
+                        OYUN OLUŞTUR
+                    </button>
+                    <button class="menu-btn multiplayer-sub-btn" id="joinGameBtn">
+                        <span class="btn-icon">🚪</span>
+                        OYUNA KATIL
+                    </button>
+                    <button class="menu-btn multiplayer-sub-btn" id="quickMatchBtn">
+                        <span class="btn-icon">⚡</span>
+                        HIZLI EŞLEŞME
+                    </button>
+                </div>
                 <button class="menu-btn secondary-btn" id="howToPlayBtn">
                     <span class="btn-icon">📖</span>
                     NASIL OYNANIR
@@ -37,6 +53,11 @@
                     <span class="btn-icon">⚙️</span>
                     AYARLAR
                 </button>
+            </div>
+            
+            <!-- MULTIPLAYER DURUM BİLGİSİ -->
+            <div class="multiplayer-status" id="multiplayerStatus" style="margin: 1rem 0; padding: 0.5rem; background: rgba(0,0,0,0.1); border-radius: 8px;">
+                <p>🔄 Multiplayer sistemi hazırlanıyor...</p>
             </div>
             
             <div class="menu-footer">
@@ -244,7 +265,39 @@
         </div>
     </div>
 
+    <!-- JOIN GAME MODAL -->
+    <div class="modal" id="joinGameModal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn" id="closeJoinGame">&times;</span>
+            <h2>🚪 OYUNA KATIL</h2>
+            <div class="join-game-content">
+                <p>Arkadaşınızdan aldığınız 6 haneli oyun ID'sini girin:</p>
+                <input type="text" id="gameIdInput" placeholder="Örnek: ABC123" maxlength="6" style="
+                    width: 100%; 
+                    padding: 1rem; 
+                    font-size: 1.2rem; 
+                    text-align: center; 
+                    text-transform: uppercase; 
+                    border: 2px solid #6366f1; 
+                    border-radius: 8px; 
+                    margin: 1rem 0;
+                    letter-spacing: 2px;
+                    font-family: 'Courier New', monospace;
+                ">
+                <div class="modal-buttons">
+                    <button class="menu-btn primary-btn" id="joinGameConfirmBtn">
+                        🚪 KATIL
+                    </button>
+                    <button class="menu-btn secondary-btn" id="cancelJoinBtn">
+                        ❌ İPTAL
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT -->
     <script src="script.js"></script>
+    <script src="multiplayer-render.js"></script>
 </body>
 </html>
