@@ -1,0 +1,23 @@
+{
+  "name": "epic-websocket-server",
+  "version": "1.0.0",
+  "description": "Dedicated WebSocket server for Epic Card Battle - dawnlighten.com.tr",
+  "main": "websocket-server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node websocket-server.js",
+    "dev": "node websocket-server.js",
+    "websocket": "node websocket-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.5",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["websocket", "multiplayer", "game", "dawnlighten"],
+  "author": "Epic Card Battle Team",
+  "license": "MIT"
+}
