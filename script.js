@@ -157,6 +157,56 @@ function setupMenuEvents() {
     document.getElementById('howToPlayBtn').addEventListener('click', showHowToPlay);
     document.getElementById('settingsBtn').addEventListener('click', showSettings);
     
+    // ÇOK OYUNCULU BUTONLARI - YENİ EKLENDİ!
+    const multiplayerBtn = document.getElementById('multiplayerBtn');
+    if (multiplayerBtn) {
+        multiplayerBtn.addEventListener('click', () => {
+            console.log('🎮 Çok oyunculu butonuna tıklandı!');
+            const submenu = document.getElementById('multiplayerSubmenu');
+            if (submenu) {
+                const isVisible = submenu.style.display !== 'none' && submenu.style.display !== '';
+                submenu.style.display = isVisible ? 'none' : 'block';
+                
+                // Multiplayer sistem bağlantısını başlat
+                if (!isVisible && window.renderMultiplayer && !window.renderMultiplayer.connected) {
+                    console.log('🔄 Multiplayer bağlantısı başlatılıyor...');
+                    window.renderMultiplayer.connect();
+                }
+            }
+        });
+    }
+    
+    // Çok oyunculu alt butonları
+    const createGameBtn = document.getElementById('createGameBtn');
+    if (createGameBtn) {
+        createGameBtn.addEventListener('click', () => {
+            console.log('🏠 Oyun oluştur butonuna tıklandı!');
+            if (window.renderMultiplayer) {
+                window.renderMultiplayer.createGame();
+            }
+        });
+    }
+    
+    const joinGameBtn = document.getElementById('joinGameBtn');
+    if (joinGameBtn) {
+        joinGameBtn.addEventListener('click', () => {
+            console.log('🚪 Oyuna katıl butonuna tıklandı!');
+            if (window.showJoinGameModal) {
+                window.showJoinGameModal();
+            }
+        });
+    }
+    
+    const quickMatchBtn = document.getElementById('quickMatchBtn');
+    if (quickMatchBtn) {
+        quickMatchBtn.addEventListener('click', () => {
+            console.log('⚡ Hızlı eşleşme butonuna tıklandı!');
+            if (window.renderMultiplayer) {
+                window.renderMultiplayer.findQuickMatch();
+            }
+        });
+    }
+    
     // Modal kapatma
     document.getElementById('closeHowToPlay').addEventListener('click', closeHowToPlay);
     document.getElementById('closeSettings').addEventListener('click', closeSettings);
