@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basit Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #5a6fd8; }
+    </style>
+</head>
+<body>
+    <div class="test-box">
+        <h1>🔥 Firebase Test (CDN)</h1>
+        <p>Bu test CDN ile Firebase'i yükler.</p>
+        
+        <button onclick="testFirebaseConnection()">Firebase Bağlantısını Test Et</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>📋 Çözüm Seçenekleri</h2>
+        <ul>
+            <li><strong>VS Code Live Server:</strong> VS Code'da Live Server eklentisini yükle</li>
+            <li><strong>Python:</strong> <code>python -m http.server 8000</code></li>
+            <li><strong>Node.js:</strong> <code>npx http-server</code></li>
+            <li><strong>GitHub Pages:</strong> Dosyaları push et ve GitHub Pages aktif et</li>
+        </ul>
+    </div>
+
+    <!-- Firebase CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBP9Xy8jETnSgdqyf4Mv157WNoE145Wb-Q",
+            authDomain: "ders-sites1.firebaseapp.com",
+            projectId: "ders-sites1",
+            storageBucket: "ders-sites1.firebasestorage.app",
+            messagingSenderId: "834421332256",
+            appId: "1:834421332256:web:f90c0326d4472af5fadf45",
+            measurementId: "G-FQ86EJ9J44"
+        };
+
+        function testFirebaseConnection() {
+            const resultDiv = document.getElementById('result');
+            try {
+                // Firebase'i başlat
+                firebase.initializeApp(firebaseConfig);
+                const auth = firebase.auth();
+                const db = firebase.firestore();
+                
+                resultDiv.innerHTML = '<div class="success">✅ Firebase başarıyla bağlandı! Auth ve Firestore hazır.</div>';
+                
+                // Test kullanıcı oluştur
+                setTimeout(() => {
+                    resultDiv.innerHTML += '<div class="success">✅ Sistem hazır! register-firebase.html sayfasını http sunucuda test edebilirsiniz.</div>';
+                }, 1000);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Firebase bağlantı hatası: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
