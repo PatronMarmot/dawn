@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmPasswordInput = document.getElementById('confirmPassword');
     const strengthBar = document.getElementById('strengthBar');
     const strengthText = document.getElementById('strengthText');
+    const googleSignUpBtn = document.getElementById('googleSignUp');
 
     // Şifre gücü kontrolü
     passwordInput.addEventListener('input', checkPasswordStrength);
@@ -11,31 +12,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form gönderimi
     registerForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        handleRegister();
+        handleFirebaseRegister();
     });
 
-    function handleRegister() {
+    // Google ile kayıt
+    googleSignUpBtn.addEventListener('click', handleGoogleSignUp);
+
+    async function handleFirebaseRegister() {
         const firstName = document.getElementById('firstName').value.trim();
         const lastName = document.getElementById('lastName').value.trim();
         const email = document.getElementById('email').value.trim();
-        const username = document.getElementById('username').value.trim();
         const password = passwordInput.value;
         const confirmPassword = confirmPasswordInput.value;
         const agreeTerms = document.getElementById('agreeTerms').checked;
+        const newsletter = document.getElementById('newsletter').checked;
 
         // Doğrulamalar
-        if (!firstName || !lastName || !email || !username || !password || !confirmPassword) {
+        if (!firstName || !lastName || !email || !password || !confirmPassword) {
             showError('Tüm alanları doldurunuz!');
             return;
         }
 
         if (!isValidEmail(email)) {
             showError('Geçerli bir e-posta adresi giriniz!');
-            return;
-        }
-
-        if (username.length < 3) {
-            showError('Kullanıcı adı en az 3 karakter olmalıdır!');
             return;
         }
 
@@ -54,49 +53,89 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Kullanıcı var mı kontrol et
-        const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-        if (existingUsers.some(user => user.username === username)) {
-            showError('Bu kullanıcı adı zaten kullanılıyor!');
-            return;
-        }
-
-        if (existingUsers.some(user => user.email === email)) {
-            showError('Bu e-posta adresi zaten kayıtlı!');
-            return;
-        }
-
         // Loading durumu
         const registerBtn = document.querySelector('.register-btn');
         const originalText = registerBtn.innerHTML;
         registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kayıt oluşturuluyor...';
         registerBtn.disabled = true;
 
-        // Simüle edilmiş kayıt işlemi
-        setTimeout(() => {
-            const newUser = {
-                id: Date.now(),
-                firstName,
-                lastName,
-                email,
-                username,
-                password: btoa(password), // Base64 ile şifrele
-                newsletter: document.getElementById('newsletter').checked,
+        try {
+            // Firebase ile kullanıcı oluştur
+            const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
+            const user = userCredential.user;
+
+            // Kullanıcı profil bilgilerini güncelle
+            await window.updateProfile(user, {
+                displayName: `${firstName} ${lastName}`
+            });
+
+            // Firestore'da kullanıcı verilerini kaydet
+            await window.setDoc(window.doc(window.db, 'users', user.uid), {
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                newsletter: newsletter,
                 createdAt: new Date().toISOString(),
-                isActive: true,
-                avatar: `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=667eea&color=fff`
-            };
+                lastLogin: new Date().toISOString()
+            });
 
-            existingUsers.push(newUser);
-            localStorage.setItem('users', JSON.stringify(existingUsers));
-            localStorage.setItem('currentUser', JSON.stringify(newUser));
-
-            showSuccess('Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...');
+            showSuccess('Kayıt başarılı! Dashboard\'a yönlendiriliyorsunuz...');
 
             setTimeout(() => {
-                window.location.href = 'login.html';
+                window.location.href = 'dashboard.html';
             }, 2000);
-        }, 2000);
+
+        } catch (error) {
+            console.error('Kayıt hatası:', error);
+            let errorMessage = 'Kayıt sırasında bir hata oluştu!';
+            
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    errorMessage = 'Bu e-posta adresi zaten kullanılıyor!';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = 'Geçersiz e-posta adresi!';
+                    break;
+                case 'auth/weak-password':
+                    errorMessage = 'Şifre çok zayıf! En az 6 karakter olmalıdır.';
+                    break;
+                case 'auth/network-request-failed':
+                    errorMessage = 'İnternet bağlantısını kontrol edin!';
+                    break;
+            }
+            
+            showError(errorMessage);
+            registerBtn.innerHTML = originalText;
+            registerBtn.disabled = false;
+        }
+    }
+
+    async function handleGoogleSignUp() {
+        try {
+            const result = await window.signInWithPopup(window.auth, window.provider);
+            const user = result.user;
+
+            // Firestore'da kullanıcı verilerini kaydet
+            await window.setDoc(window.doc(window.db, 'users', user.uid), {
+                firstName: user.displayName?.split(' ')[0] || '',
+                lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
+                email: user.email,
+                newsletter: false,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString(),
+                provider: 'google'
+            });
+
+            showSuccess('Google ile kayıt başarılı! Yönlendiriliyorsunuz...');
+            
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 1500);
+
+        } catch (error) {
+            console.error('Google kayıt hatası:', error);
+            showError('Google ile kayıt sırasında bir hata oluştu!');
+        }
     }
 
     function checkPasswordStrength() {
@@ -180,11 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const existingAlerts = document.querySelectorAll('.alert');
         existingAlerts.forEach(alert => alert.remove());
     }
-
-    // Google kayıt simülasyonu
-    document.querySelector('.google-btn').addEventListener('click', function() {
-        showError('Google kaydı henüz aktif değil!');
-    });
 });
 
 // Şifre görünürlük toggle

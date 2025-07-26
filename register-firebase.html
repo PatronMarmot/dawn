@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dawn - Kayıt Ol</title>
+    <link rel="stylesheet" href="css/register.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="register-form">
+            <div class="form-header">
+                <h1><i class="fas fa-sun"></i> Dawn</h1>
+                <p>Hesap Oluştur</p>
+            </div>
+            
+            <form id="registerForm">
+                <div class="form-row">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="firstName" placeholder="Ad" required>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="lastName" placeholder="Soyad" required>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" placeholder="E-posta Adresi" required>
+                </div>
+                
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Şifre (En az 6 karakter)" required>
+                    <span class="toggle-password" onclick="togglePassword('password')">
+                        <i class="fas fa-eye" id="eyeIcon1"></i>
+                    </span>
+                </div>
+                
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="confirmPassword" placeholder="Şifre Tekrar" required>
+                    <span class="toggle-password" onclick="togglePassword('confirmPassword')">
+                        <i class="fas fa-eye" id="eyeIcon2"></i>
+                    </span>
+                </div>
+                
+                <div class="password-strength">
+                    <div class="strength-meter">
+                        <div class="strength-bar" id="strengthBar"></div>
+                    </div>
+                    <span class="strength-text" id="strengthText">Şifre Gücü</span>
+                </div>
+                
+                <div class="form-options">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="agreeTerms" required>
+                        <span>Kullanım şartlarını ve gizlilik politikasını kabul ediyorum</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="newsletter">
+                        <span>E-posta bildirimleri almak istiyorum</span>
+                    </label>
+                </div>
+                
+                <button type="submit" class="register-btn">
+                    <i class="fas fa-user-plus"></i> Kayıt Ol
+                </button>
+                
+                <div class="divider">
+                    <span>veya</span>
+                </div>
+                
+                <div class="social-register">
+                    <button type="button" class="google-btn" id="googleSignUp">
+                        <i class="fab fa-google"></i> Google ile Kayıt Ol
+                    </button>
+                </div>
+                
+                <div class="login-link">
+                    <p>Zaten hesabınız var mı? <a href="login.html">Giriş Yap</a></p>
+                </div>
+            </form>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-content">
+                <h2>Dawn ile Başlayın</h2>
+                <div class="benefits">
+                    <div class="benefit">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>Güvenli</h3>
+                        <p>Verileriniz Firebase ile şifrelenerek korunur</p>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-mobile-alt"></i>
+                        <h3>Mobil Uyumlu</h3>
+                        <p>Her cihazdan erişim sağlayabilirsiniz</p>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-cloud"></i>
+                        <h3>Bulut Depolama</h3>
+                        <p>Verileriniz güvenle saklanır</p>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-sync"></i>
+                        <h3>Senkronizasyon</h3>
+                        <p>Tüm cihazlarda senkronize</p>
+                    </div>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <h3>10,000+</h3>
+                        <p>Mutlu Kullanıcı</p>
+                    </div>
+                    <div class="stat">
+                        <h3>99.9%</h3>
+                        <p>Uptime</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase Config - Kendi config bilgilerinizi buraya koyun
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Firebase'i başlat
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // Global olarak erişilebilir hale getir
+        window.auth = auth;
+        window.db = db;
+        window.provider = provider;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.signInWithPopup = signInWithPopup;
+        window.updateProfile = updateProfile;
+        window.doc = doc;
+        window.setDoc = setDoc;
+    </script>
+    <script src="js/register-firebase.js"></script>
+</body>
+</html>
